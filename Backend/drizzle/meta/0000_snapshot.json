@@ -1,0 +1,260 @@
+{
+  "id": "293a5360-d41f-408a-b4a1-f8267f31e4fa",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.lagerplatzTable": {
+      "name": "lagerplatzTable",
+      "schema": "",
+      "columns": {
+        "lagerplatz_id": {
+          "name": "lagerplatz_id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "lager_id": {
+          "name": "lager_id",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "regalNR": {
+          "name": "regalNR",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "regalSection": {
+          "name": "regalSection",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "regalShelf": {
+          "name": "regalShelf",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.zuordnungTable": {
+      "name": "zuordnungTable",
+      "schema": "",
+      "columns": {
+        "pl_id": {
+          "name": "pl_id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "lagerplatz_id": {
+          "name": "lagerplatz_id",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "product_id": {
+          "name": "product_id",
+          "type": "serial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "menge": {
+          "name": "menge",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.lagerTable": {
+      "name": "lagerTable",
+      "schema": "",
+      "columns": {
+        "lager_id": {
+          "name": "lager_id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "lager_name": {
+          "name": "lager_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "standort": {
+          "name": "standort",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.productTable": {
+      "name": "productTable",
+      "schema": "",
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "produkt_name": {
+          "name": "produkt_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mindest_bestand": {
+          "name": "mindest_bestand",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "aktueller_bestand": {
+          "name": "aktueller_bestand",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "barcode": {
+          "name": "barcode",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lastChange": {
+          "name": "lastChange",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "productTable_barcode_unique": {
+          "name": "productTable_barcode_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "barcode"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.userTable": {
+      "name": "userTable",
+      "schema": "",
+      "columns": {
+        "benutzer_id": {
+          "name": "benutzer_id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "benutzername": {
+          "name": "benutzername",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "passwort_hash": {
+          "name": "passwort_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rolle": {
+          "name": "rolle",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "userTable_benutzername_unique": {
+          "name": "userTable_benutzername_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "benutzername"
+          ]
+        },
+        "userTable_email_unique": {
+          "name": "userTable_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
