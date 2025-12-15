@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lager Übersicht</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        .nav-tabs-custom {
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 30px;
+        }
+
+        .nav-tabs-custom .nav-link {
+            color: #333;
+            background-color: #f0f0f0;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            margin-right: 8px;
+            padding: 10px 20px;
+            font-weight: 500;
+        }
+
+        .nav-tabs-custom .nav-link.active {
+            background-color: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+            border-bottom: 1px solid white;
+        }
+
+        .search-bar {
+            background-color: #f0f0f0;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: #666;
+        }
+
+        .filter-dropdown {
+            background-color: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px 16px;
+            color: #333;
+            cursor: pointer;
+        }
+
+        .btn-add-item {
+            background-color: #000;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-weight: 600;
+        }
+
+        .btn-add-item:hover {
+            background-color: #333;
+            color: white;
+        }
+
+        .table-container {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table thead th {
+            background-color: white;
+            border-bottom: 2px solid #e0e0e0;
+            color: #333;
+            font-weight: 600;
+            padding: 16px;
+        }
+
+        .table tbody td {
+            border-bottom: 1px solid #f0f0f0;
+            padding: 16px;
+            vertical-align: middle;
+        }
+
+        .table tbody tr:hover {
+            background-color: #fafafa;
+        }
+
+        .badge-raw-materials {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-components {
+            background-color: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .badge-consumables {
+            background-color: #fffde7;
+            color: #f57f17;
+        }
+
+        .barcode {
+            color: #999;
+            font-size: 14px;
+        }
+
+        .action-icons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .action-icons a {
+            color: #666;
+            cursor: pointer;
+            font-size: 18px;
+            text-decoration: none;
+        }
+
+        .action-icons a:hover {
+            color: #333;
+        }
+
+        .action-icons .delete {
+            color: #d32f2f;
+        }
+
+        .action-icons .delete:hover {
+            color: #c62828;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid p-4">
+        <!-- Tabs Navigation -->
+        <ul class="nav nav-tabs nav-tabs-custom" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="warehouses-tab" data-bs-toggle="tab" data-bs-target="#warehouses" type="button" role="tab" aria-controls="warehouses" aria-selected="true">
+                    Warehouses
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory" type="button" role="tab" aria-controls="inventory" aria-selected="false">
+                    Inventory
+                </button>
+            </li>
+        </ul>
+
+        <!-- Search and Filter Bar -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text search-bar" style="border: none; background-color: #f0f0f0;">
+                        <i class="fas fa-search" style="color: #999;"></i>
+                    </span>
+                    <input type="text" class="form-control search-bar" placeholder="Search by name or barcode..." style="border: none;">
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                <select class="filter-dropdown me-3">
+                    <option>All Warehouses</option>
+                    <option>Main Manufacturing Warehouse</option>
+                    <option>Distribution Center North</option>
+                    <option>Assembly Warehouse</option>
+                </select>
+                <select class="filter-dropdown me-3">
+                    <option>All Categories</option>
+                    <option>Raw Materials</option>
+                    <option>Components</option>
+                    <option>Consumables</option>
+                </select>
+                <button class="btn btn-add-item">
+                    <i class="fas fa-plus me-2"></i> Add Item
+                </button>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Item Name</th>
+                        <th>Barcode</th>
+                        <th>Category</th>
+                        <th>Quantity</th>
+                        <th>Warehouse</th>
+                        <th>Location</th>
+                        <th>Last Updated</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Steel Plates 10mm</td>
+                        <td><span class="barcode">|||| 7894561230001</span></td>
+                        <td><span class="badge badge-raw-materials">Raw Materials</span></td>
+                        <td>500</td>
+                        <td>Main Manufacturing Warehouse</td>
+                        <td>A-12-03</td>
+                        <td>2025-10-14</td>
+                        <td>
+                            <div class="action-icons">
+                                <a href="#"><i class="fas fa-edit"></i></a>
+                                <a href="#" class="delete"><i class="fas fa-trash"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Aluminum Rods 5m</td>
+                        <td><span class="barcode">|||| 7894561230002</span></td>
+                        <td><span class="badge badge-raw-materials">Raw Materials</span></td>
+                        <td>250</td>
+                        <td>Main Manufacturing Warehouse</td>
+                        <td>A-15-08</td>
+                        <td>2025-10-13</td>
+                        <td>
+                            <div class="action-icons">
+                                <a href="#"><i class="fas fa-edit"></i></a>
+                                <a href="#" class="delete"><i class="fas fa-trash"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Electric Motors 5HP</td>
+                        <td><span class="barcode">|||| 7894561230003</span></td>
+                        <td><span class="badge badge-components">Components</span></td>
+                        <td>120</td>
+                        <td>Main Manufacturing Warehouse</td>
+                        <td>B-05-12</td>
+                        <td>2025-10-15</td>
+                        <td>
+                            <div class="action-icons">
+                                <a href="#"><i class="fas fa-edit"></i></a>
+                                <a href="#" class="delete"><i class="fas fa-trash"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Bearing Sets Type A</td>
+                        <td><span class="barcode">|||| 7894561230004</span></td>
+                        <td><span class="badge badge-components">Components</span></td>
+                        <td>800</td>
+                        <td>Distribution Center North</td>
+                        <td>C-02-15</td>
+                        <td>2025-10-12</td>
+                        <td>
+                            <div class="action-icons">
+                                <a href="#"><i class="fas fa-edit"></i></a>
+                                <a href="#" class="delete"><i class="fas fa-trash"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Hydraulic Pumps HP-200</td>
+                        <td><span class="barcode">|||| 7894561230005</span></td>
+                        <td><span class="badge badge-components">Components</span></td>
+                        <td>45</td>
+                        <td>Distribution Center North</td>
+                        <td>D-08-04</td>
+                        <td>2025-10-16</td>
+                        <td>
+                            <div class="action-icons">
+                                <a href="#"><i class="fas fa-edit"></i></a>
+                                <a href="#" class="delete"><i class="fas fa-trash"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Welding Rods 3mm</td>
+                        <td><span class="barcode">|||| 7894561230006</span></td>
+                        <td><span class="badge badge-consumables">Consumables</span></td>
+                        <td>2 000</td>
+                        <td>Assembly Warehouse</td>
+                        <td>E-01-02</td>
+                        <td>2025-10-11</td>
+                        <td>
+                            <div class="action-icons">
+                                <a href="#"><i class="fas fa-edit"></i></a>
+                                <a href="#" class="delete"><i class="fas fa-trash"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Industrial Lubricant 5L</td>
+                        <td><span class="barcode">|||| 7894561230007</span></td>
+                        <td><span class="badge badge-consumables">Consumables</span></td>
+                        <td>150</td>
+                        <td>Assembly Warehouse</td>
+                        <td>E-03-07</td>
+                        <td>2025-10-10</td>
+                        <td>
+                            <div class="action-icons">
+                                <a href="#"><i class="fas fa-edit"></i></a>
+                                <a href="#" class="delete"><i class="fas fa-trash"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
