@@ -3,70 +3,72 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>WarehouseHub - Barcode Scanner</title>
+  <title>WarehouseHub Scanner</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+    .scanner-panel, .details-panel {
+      background-color: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .camera-placeholder {
+      height: 200px;
+      background-color: #e9ecef;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+    .camera-placeholder i {
+      font-size: 48px;
+      color: #6c757d;
+    }
+    .details-panel i {
+      font-size: 64px;
+      color: #adb5bd;
+    }
+  </style>
 </head>
-<body class="bg-light">
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4" style="padding-top:20px; padding-bottom:20px;"> <div class="container-fluid"> </div> </nav>
 
-  <!-- Navigation -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
-    <a class="navbar-brand" href="#">WarehouseHub</a>
-    <div class="collapse navbar-collapse">
-      <ul class="navbar-nav me-auto">
-        <li class="nav-item"><a class="nav-link" href="#">Warehouses</a></li>
-        <li class="nav-item"><a class="nav-link active" href="#">Scanner</a></li>
-        <li class="nav-item"><a class="nav-link" href="#">Admin</a></li>
-      </ul>
-      <div class="d-flex">
-        <button class="btn btn-outline-light me-2">Preview</button>
-        <button class="btn btn-outline-light me-2">Code</button>
-        <button class="btn btn-primary">Publish</button>
-      </div>
-    </div>
-  </nav>
-
-  <!-- Main Content -->
-  <div class="container py-5">
-    <h2 class="mb-4">Barcode Scanner</h2>
-    <p class="text-muted mb-5">Scan or enter barcodes to manage inventory</p>
-
-    <div class="row">
-      <!-- Scan Barcode Section -->
-      <div class="col-md-6 mb-4">
-        <div class="card h-100">
-          <div class="card-body">
-            <h5 class="card-title">Scan Barcode</h5>
-            <p class="card-text">Use your device camera or enter barcode manually</p>
-
-            <div class="text-center mb-3">
-              <div class="text-muted mb-2">📷 Kamera inaktiv</div>
-              <button class="btn btn-outline-primary">Kamera starten</button>
-            </div>
-
-            <hr>
-            <p class="mb-2">Oder Barcode manuell eingeben</p>
-            <div class="input-group">
-              <input type="text" class="form-control" placeholder="Barcode-Nummer eingeben...">
-              <button class="btn btn-outline-secondary" type="button">🔍</button>
-            </div>
+  <div class="container">
+    <div class="row g-4">
+      <!-- Scanner Panel -->
+      <div class="col-md-6">
+        <div class="scanner-panel">
+          <h4>Barcode scannen</h4>
+          <p>Nutze deine Kamera oder gib den Barcode manuell ein</p>
+          <div class="camera-placeholder">
+            <i class="bi bi-camera-video-off"></i>
+            <span class="ms-2">Kamera inaktiv</span>
+          </div>
+          <button class="btn btn-primary w-100 mb-3">Kamera starten</button>
+          <div class="input-group">
+            <input type="text" class="form-control" placeholder="Barcode-Nummer eingeben...">
+            <button class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
           </div>
         </div>
       </div>
 
-      <!-- Scanned Item Details Section -->
-      <div class="col-md-6 mb-4">
-        <div class="card h-100 text-center">
-          <div class="card-body d-flex flex-column justify-content-center">
-            <h5 class="card-title">Scanned Item Details</h5>
-            <p class="text-muted">Noch kein Artikel gescannt</p>
-            <div class="display-4 mb-3">📦</div>
-            <p class="text-muted">Scannen oder suchen Sie einen Artikel, um Details anzuzeigen</p>
-          </div>
+      <!-- Item Details Panel -->
+      <div class="col-md-6">
+        <div class="details-panel text-center">
+          <h4>Keine Artikel gescannt</h4>
+          <p>Scanne oder suche einen Artikel, um Details anzuzeigen</p>
+          <i class="bi bi-box-seam"></i>
         </div>
       </div>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 </body>
 </html>
