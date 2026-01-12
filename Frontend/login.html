@@ -14,12 +14,40 @@
         body {
             font-family: Arial, sans-serif;
             /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
-            background: url('WIN_20251124_12_08_08_Pro.jpg') no-repeat center center fixed;
+            background: linear-gradient(135deg, #1073ad 0%, #668698);
             background-size: cover;
             min-height: 100vh;
+            height: 100%;
             display: flex;
             justify-content: center;
+            align-items: flex-start;
+            padding: 32px 0 48px;
+        }
+
+        .page {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
             align-items: center;
+            gap: 20px;
+        }
+
+        .logo-card {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            padding: 10px 16px;
+            border-radius: 10px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+            min-height: 56px;
+            min-width: 180px;
+        }
+
+        .logo-card img {
+            max-height: 70px;
+            width: auto;
+            display: block;
         }
 
         .login-container {
@@ -36,25 +64,6 @@
             color: #333;
             margin-bottom: 30px;
             font-size: 28px;
-        }
-
-        .checkbox-group {
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-        }
-
-        .checkbox-group input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            margin-right: 10px;
-            cursor: pointer;
-        }
-
-        .checkbox-group label {
-            color: #555;
-            font-size: 14px;
-            cursor: pointer;
         }
 
         .input-group {
@@ -86,7 +95,7 @@
         .login-button {
             width: 100%;
             padding: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1073ad 0%, #668698 100%);
             color: white;
             border: none;
             border-radius: 5px;
@@ -106,27 +115,28 @@
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <h1>Login</h1>
-        
-        <form>
-            <div class="checkbox-group">
-                <input type="checkbox" id="admin" name="admin">
-                <label for="admin">Ich bin Admin</label>
-            </div>
+    <div class="page">
+        <div class="logo-card">
+            <img src="./noBgColor.png" alt="Nexus Logo">
+        </div>
 
-            <div class="input-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email" required>
-            </div>
+        <div class="login-container">
+            <h1>Login</h1>
+            
+            <form>
+                <div class="input-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
 
-            <div class="input-group">
-                <label for="password">Passwort</label>
-                <input type="password" id="password" name="password" required>
-            </div>
+                <div class="input-group">
+                    <label for="password">Passwort</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
 
-            <button type="submit" class="login-button">Einloggen</button>
-        </form>
+                <button type="submit" class="login-button">Einloggen</button>
+            </form>
+        </div>
     </div>
 </body>
 </html>
