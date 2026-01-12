@@ -5,70 +5,164 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>WarehouseHub Scanner</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
   <style>
     body {
-      background-color: #f8f9fa;
+      background-color: #f3f4f6;
+      overflow: hidden; /* Scrollbar aus */
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
+
     .scanner-panel, .details-panel {
-      background-color: white;
-      border-radius: 8px;
-      padding: 20px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      background-color: #ffffff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+      height: 100%;
+      border: 1px solid rgba(148, 163, 184, 0.25);
     }
+
     .camera-placeholder {
       height: 200px;
-      background-color: #e9ecef;
+      background: linear-gradient(135deg, #e5e7eb, #f3f4f6);
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 8px;
-      margin-bottom: 15px;
+      border-radius: 10px;
+      margin-bottom: 18px;
     }
+
     .camera-placeholder i {
-      font-size: 48px;
-      color: #6c757d;
+      font-size: 40px;
+      color: #6b7280;
+      margin-right: 8px;
     }
+
     .details-panel i {
-      font-size: 64px;
-      color: #adb5bd;
+      font-size: 60px;
+      color: #9ca3af;
+    }
+
+    h4 {
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    p {
+      margin-bottom: 16px;
+      color: #6b7280;
+      font-size: 0.95rem;
+    }
+
+    /* Platz unter Navbar (Höhe deiner Navbar) */
+    main {
+      padding-top: 80px;
+    }
+
+    /* Zeile: voller Bereich unter Navbar, sauber zentriert */
+    .scanner-row {
+      height: calc(100vh - 80px);
+      display: flex;
+      align-items: flex-start;    /* gleiche Höhe von oben */
+      justify-content: center;    /* Block mit beiden Karten mittig */
+      gap: 2rem;
+    }
+
+    /* Karten etwas schmaler für mehr Luft */
+    .scanner-col {
+      max-width: 520px;
+    }
+
+    .btn-primary {
+      background-color: #2563eb;
+      border-color: #2563eb;
+    }
+
+    .btn-primary:hover {
+      background-color: #1d4ed8;
+      border-color: #1d4ed8;
     }
   </style>
 </head>
 <body>
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4" style="padding-top:20px; padding-bottom:20px;"> <div class="container-fluid"> </div> </nav>
+  <!-- Top Navbar (GENAU wie zuvor) -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
+    <div class="container-fluid px-4">
+      <a class="navbar-brand" href="#">
+        <i class="bi bi-box-seam me-2"></i>WarehouseHub
+      </a>
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#mainNavbar"
+        aria-controls="mainNavbar"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
 
-  <div class="container">
-    <div class="row g-4">
-      <!-- Scanner Panel -->
-      <div class="col-md-6">
-        <div class="scanner-panel">
-          <h4>Barcode scannen</h4>
-          <p>Nutze deine Kamera oder gib den Barcode manuell ein</p>
-          <div class="camera-placeholder">
-            <i class="bi bi-camera-video-off"></i>
-            <span class="ms-2">Kamera inaktiv</span>
-          </div>
-          <button class="btn btn-primary w-100 mb-3">Kamera starten</button>
-          <div class="input-group">
-            <input type="text" class="form-control" placeholder="Barcode-Nummer eingeben...">
-            <button class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
-          </div>
-        </div>
-      </div>
+      <div class="collapse navbar-collapse" id="mainNavbar">
+        <ul class="navbar-nav ms-3 me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="lager_uebersicht.html">
+              Warehouses
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="Scanner.html">Scanner</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">Admin</a>
+          </li>
+        </ul>
 
-      <!-- Item Details Panel -->
-      <div class="col-md-6">
-        <div class="details-panel text-center">
-          <h4>Keine Artikel gescannt</h4>
-          <p>Scanne oder suche einen Artikel, um Details anzuzeigen</p>
-          <i class="bi bi-box-seam"></i>
+        <div class="d-flex align-items-center gap-3">
+          <span class="text-muted small">angemeldet als: user@example.com</span>
+          <button class="btn btn-outline-secondary btn-sm">
+            Logout
+          </button>
         </div>
       </div>
     </div>
-  </div>
+  </nav>
 
-  <!-- Bootstrap Icons -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <main>
+    <div class="container">
+      <!-- volle Höhe und zentriert -->
+      <div class="scanner-row">
+        <div class="col-md-6 scanner-col">
+          <!-- Scanner Panel -->
+          <div class="scanner-panel">
+            <h4>Barcode scannen</h4>
+            <p>Nutze deine Kamera oder gib den Barcode manuell ein.</p>
+            <div class="camera-placeholder">
+              <i class="bi bi-camera-video-off"></i>
+              <span>Kamera inaktiv</span>
+            </div>
+            <button class="btn btn-primary w-100 mb-3">Kamera starten</button>
+            <div class="input-group">
+              <input type="text" class="form-control" placeholder="Barcode-Nummer eingeben...">
+              <button class="btn btn-outline-secondary">
+                <i class="bi bi-search"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 scanner-col">
+          <!-- Item Details Panel -->
+          <div class="details-panel text-center">
+            <h4>Keine Artikel gescannt</h4>
+            <p>Scanne oder suche einen Artikel, um Details anzuzeigen.</p>
+            <i class="bi bi-box-seam"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
