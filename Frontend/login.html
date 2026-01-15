@@ -112,6 +112,33 @@
         .login-button:active {
             transform: translateY(0);
         }
+
+
+        
+        .signup-link {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+        }
+
+        .signup-link a {
+            padding: 10px 15px;
+            background: white;
+            color: #1073ad;
+            border: 2px solid #1073ad;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .signup-link a:hover {
+            background: #1073ad;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -137,6 +164,52 @@
                 <button type="submit" class="login-button">Einloggen</button>
             </form>
         </div>
+
+        <div class="signup-link">
+            <a href="./user anlegen.html">Neuen Benutzer erstellen</a>
+        </div>
     </div>
+
+
+    <script>
+        document.querySelector('form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('http://localhost:3000/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    window.location.href = './home.html';
+                } else {
+                    alert(data.error || 'Login fehlgeschlagen');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Verbindungsfehler zum Server');
+            }
+        });
+
+        //admin
+        //admin123
+
+        //user1
+        //user123
+
+        //cd "c:\Users\janni\OneDrive\Dokumente\GitHub\Nexus\Backend"
+        //npx ts-node src/server.ts
+    </script>
 </body>
 </html>

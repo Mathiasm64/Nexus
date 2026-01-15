@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import { eq } from 'drizzle-orm';
 import { db } from './db';
 import { userTable } from './db/schema';
+import { neon } from '@neondatabase/serverless';
 
 dotenv.config();
 
@@ -65,7 +66,70 @@ app.post('/login', async (req: Request, res: Response) => {
   }
 });
 
+
+
+// Nach dem Import von db
+(async () => {
+  try {
+    const sql = neon(process.env.DATABASE_URL!);
+    await sql`SELECT 1`; // Test connection
+    console.log('Datenbankverbindung erfolgreich');
+  } catch (error) {
+    console.error('Datenbankverbindungsfehler:', error);
+    process.exit(1);
+  }
+})();
+
 app.listen(PORT, () => {
   console.log(`Auth server läuft auf Port ${PORT}`);
 });
 
+
+//register Anfang
+app.post('/register', async (req: Request, res: Response) => {
+  try {
+    const { username, email, password } = req.body as { username?: string; email?: string; password?: string };
+
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: 'Benutzername, Email und Passwort benötigt' });
+    }
+
+    // Check if user already exists
+    const existing = await db
+      .select()
+      .from(userTable)
+      .where(eq(userTable.email, email))
+      .limit(1);
+
+    if (existing.length > 0) {
+      return res.status(400).json({ error: 'Email existiert bereits' });
+    }
+
+    // Hash password
+    const passwortHash = await bcrypt.hash(password, 10);
+
+    // Insert new user
+    const result = await db
+      .insert(userTable)
+      .values({
+        benutzername: username,
+        email: email,
+        passwortHash: passwortHash,
+        rolle: 'USER',
+      })
+      .returning({ id: userTable.benutzerId });
+
+    return res.status(201).json({
+      message: 'Benutzer erfolgreich erstellt',
+      user: {
+        id: result[0].id,
+        username: username,
+        email: email,
+      },
+    });
+  } catch (err) {
+    console.error('Register error:', err);
+    return res.status(500).json({ error: 'Serverfehler' });
+  }
+});
+//register Ende
