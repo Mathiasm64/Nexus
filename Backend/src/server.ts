@@ -5,7 +5,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { eq } from 'drizzle-orm';
 import { db } from './db';
-import { userTable } from './db/schema';
+import { userTable, lagerTable, LagerplatzTable, ZuordnungTable, productTable } from './db/schema';
 import { neon } from '@neondatabase/serverless';
 
 dotenv.config();
@@ -19,6 +19,44 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
 app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok' });
+});
+
+app.get('/lager', async (_req: Request, res: Response) => {
+  try {
+    const lager = await db.select().from(lagerTable);
+    return res.json(lager);
+  } catch (err) {
+    console.error('Lager fetch error:', err);
+    return res.status(500).json({ error: 'Fehler beim Abrufen der Lager' });
+  }
+});
+
+app.get('/lager/:lagerId/produkte', async (req: Request, res: Response) => {
+  try {
+    const { lagerId } = req.params;
+    const lagerIdNum = parseInt(lagerId);
+    
+    // Hole alle Produkte für dieses Lager
+    // Über die Beziehung: Lager -> Lagerplatz -> Zuordnung -> Produkt
+    const produkte = await db
+      .select({
+        productId: productTable.productId,
+        produktName: productTable.produktName,
+        mindestBestand: productTable.mindestBestand,
+        aktuellerBestand: productTable.aktuellerBestand,
+        barcode: productTable.barcode,
+        menge: ZuordnungTable.menge,
+      })
+      .from(productTable)
+      .innerJoin(ZuordnungTable, eq(ZuordnungTable.productId, productTable.productId))
+      .innerJoin(LagerplatzTable, eq(LagerplatzTable.lagerplatzId, ZuordnungTable.lagerplatzId))
+      .where(eq(LagerplatzTable.lagerId, lagerIdNum));
+    
+    return res.json(produkte);
+  } catch (err) {
+    console.error('Produkte fetch error:', err);
+    return res.status(500).json({ error: 'Fehler beim Abrufen der Produkte' });
+  }
 });
 
 app.post('/login', async (req: Request, res: Response) => {

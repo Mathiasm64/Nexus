@@ -164,6 +164,11 @@
       </div>
     </div>
 
+    <!-- Warehouse cards row -->
+    <div class="row g-4" id="warehouseContainer">
+      <!-- Lager werden hier eingefügt -->
+    </div>
+
     
   </div>
 
@@ -206,6 +211,50 @@
     
     // Check authentication on page load
     checkAuthentication();
+    
+    // Load warehouses
+    async function loadWarehouses() {
+      try {
+        const response = await fetch('http://localhost:3000/lager');
+        if (!response.ok) {
+          throw new Error('Fehler beim Abrufen der Lager');
+        }
+        const lager = await response.json();
+        displayWarehouses(lager);
+      } catch (error) {
+        console.error('Fehler beim Laden der Lager:', error);
+        document.getElementById('warehouseContainer').innerHTML = '<div class="col-12"><div class="alert alert-danger">Fehler beim Laden der Lager</div></div>';
+      }
+    }
+    
+    // Display warehouses as cards
+    function displayWarehouses(lager) {
+      const container = document.getElementById('warehouseContainer');
+      
+      if (!lager || lager.length === 0) {
+        container.innerHTML = '<div class="col-12"><div class="alert alert-info">Keine Lager vorhanden</div></div>';
+        return;
+      }
+      
+      container.innerHTML = lager.map(warehouse => `
+        <div class="col-md-6 col-lg-4">
+          <div class="card card-warehouse h-100">
+            <div class="card-body">
+              <h5 class="card-title">${warehouse.lager_name}</h5>
+              <p class="card-text">
+                <strong>Standort:</strong> ${warehouse.standort}
+              </p>
+              <a href="lager_uebersicht.html?lagerId=${warehouse.lager_id}" class="btn btn-primary btn-sm">
+                <i class="bi bi-eye me-1"></i>Zur Übersicht
+              </a>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    // Load warehouses on page load
+    loadWarehouses();
   </script>
 </body>
 </html>
