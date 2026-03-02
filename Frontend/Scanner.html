@@ -32,6 +32,15 @@
       margin-bottom: 18px;
     }
 
+    .camera-view {
+      min-height: 200px;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      background: #000;
+    }
+
     .camera-placeholder i {
       font-size: 40px;
       color: #6b7280;
@@ -137,14 +146,16 @@
           <div class="scanner-panel">
             <h4>Barcode scannen</h4>
             <p>Nutze deine Kamera oder gib den Barcode manuell ein.</p>
-            <div class="camera-placeholder">
+            <div class="camera-placeholder" id="cameraPlaceholder">
               <i class="bi bi-camera-video-off"></i>
-              <span>Kamera inaktiv</span>
+              <span id="cameraStatus">Kamera inaktiv</span>
             </div>
-            <button class="btn btn-primary w-100 mb-3">Kamera starten</button>
+            <div id="reader" class="camera-view d-none"></div>
+            <button id="cameraToggleBtn" class="btn btn-primary w-100 mb-3" type="button">Kamera starten</button>
+            <div id="scannerMessage" class="alert alert-secondary d-none py-2" role="alert"></div>
             <div class="input-group">
-              <input type="text" class="form-control" placeholder="Barcode-Nummer eingeben...">
-              <button class="btn btn-outline-secondary">
+              <input id="barcodeInput" type="text" class="form-control" placeholder="Barcode-Nummer eingeben...">
+              <button id="searchBtn" class="btn btn-outline-secondary" type="button">
                 <i class="bi bi-search"></i>
               </button>
             </div>
@@ -153,7 +164,7 @@
 
         <div class="col-md-6 scanner-col">
           <!-- Item Details Panel -->
-          <div class="details-panel text-center">
+          <div class="details-panel text-center" id="detailsPanel">
             <h4>Keine Artikel gescannt</h4>
             <p>Scanne oder suche einen Artikel, um Details anzuzeigen.</p>
             <i class="bi bi-box-seam"></i>
@@ -164,5 +175,200 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <script>
+    const API_BASE = 'http://localhost:3000';
+    const scannerMessage = document.getElementById('scannerMessage');
+    const cameraToggleBtn = document.getElementById('cameraToggleBtn');
+    const barcodeInput = document.getElementById('barcodeInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const detailsPanel = document.getElementById('detailsPanel');
+    const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+    const cameraStatus = document.getElementById('cameraStatus');
+    const reader = document.getElementById('reader');
+
+    let html5QrCode = null;
+    let cameraRunning = false;
+    let scanLocked = false;
+
+    function setMessage(text, variant = 'secondary') {
+      scannerMessage.className = `alert alert-${variant} py-2`;
+      scannerMessage.textContent = text;
+      scannerMessage.classList.remove('d-none');
+    }
+
+    function clearMessage() {
+      scannerMessage.classList.add('d-none');
+    }
+
+    function renderEmptyDetails() {
+      detailsPanel.classList.add('text-center');
+      detailsPanel.innerHTML = `
+        <h4>Keine Artikel gescannt</h4>
+        <p>Scanne oder suche einen Artikel, um Details anzuzeigen.</p>
+        <i class="bi bi-box-seam"></i>
+      `;
+    }
+
+    function renderProductDetails(payload) {
+      const product = payload.product;
+      const lagerplaetze = payload.lagerplaetze || [];
+      const lowStock = product.aktuellerBestand <= product.mindestBestand;
+
+      detailsPanel.classList.remove('text-center');
+      detailsPanel.innerHTML = `
+        <h4>${product.produktName}</h4>
+        <p class="mb-2">Barcode: <strong>${product.barcode}</strong></p>
+        <div class="mb-2">Aktueller Bestand: <strong>${product.aktuellerBestand}</strong></div>
+        <div class="mb-3">Mindestbestand: <strong>${product.mindestBestand}</strong></div>
+        <div class="mb-3">
+          <span class="badge ${lowStock ? 'text-bg-danger' : 'text-bg-success'}">
+            ${lowStock ? 'Unter Mindestbestand' : 'Bestand in Ordnung'}
+          </span>
+        </div>
+        <h6 class="mt-3">Lagerplätze</h6>
+        ${lagerplaetze.length === 0
+          ? '<p class="text-muted mb-0">Kein Lagerplatz zugeordnet.</p>'
+          : `<ul class="list-group list-group-flush">${lagerplaetze
+              .map((eintrag) => `<li class="list-group-item px-0"><strong>${eintrag.lagerName || 'Unbekanntes Lager'}</strong> · ${eintrag.position} · Menge: ${eintrag.menge ?? 0}</li>`)
+              .join('')}</ul>`}
+      `;
+    }
+
+    async function fetchByBarcode(rawBarcode) {
+      const barcode = (rawBarcode || '').trim();
+      if (!barcode) {
+        setMessage('Bitte einen Barcode eingeben.', 'warning');
+        renderEmptyDetails();
+        return;
+      }
+
+      setMessage('Suche Produkt...', 'secondary');
+
+      try {
+        const response = await fetch(`${API_BASE}/produkte/barcode/${encodeURIComponent(barcode)}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          setMessage(data.error || 'Produkt nicht gefunden.', 'warning');
+          renderEmptyDetails();
+          return;
+        }
+
+        renderProductDetails(data);
+        setMessage(`Produkt gefunden: ${data.product.produktName}`, 'success');
+      } catch (error) {
+        console.error('Scanner lookup error:', error);
+        setMessage('Server nicht erreichbar. Prüfe, ob das Backend läuft.', 'danger');
+      }
+    }
+
+    async function stopCamera() {
+      if (!cameraRunning || !html5QrCode) {
+        return;
+      }
+
+      try {
+        await html5QrCode.stop();
+        await html5QrCode.clear();
+      } catch (error) {
+        console.error('Kamera-Stop fehlgeschlagen:', error);
+      }
+
+      cameraRunning = false;
+      cameraToggleBtn.textContent = 'Kamera starten';
+      cameraPlaceholder.classList.remove('d-none');
+      reader.classList.add('d-none');
+      cameraStatus.textContent = 'Kamera inaktiv';
+    }
+
+    async function startCamera() {
+      if (typeof Html5Qrcode === 'undefined') {
+        setMessage('Scanner-Bibliothek konnte nicht geladen werden.', 'danger');
+        return;
+      }
+
+      try {
+        const cameras = await Html5Qrcode.getCameras();
+        if (!cameras || cameras.length === 0) {
+          setMessage('Keine Kamera gefunden.', 'warning');
+          return;
+        }
+
+        const backCamera = cameras.find((cam) => /back|rear|environment/i.test(cam.label));
+        const selectedCamera = backCamera || cameras[0];
+
+        html5QrCode = new Html5Qrcode('reader');
+        cameraPlaceholder.classList.add('d-none');
+        reader.classList.remove('d-none');
+
+        await html5QrCode.start(
+          { deviceId: { exact: selectedCamera.id } },
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 120 },
+            formatsToSupport: [
+              Html5QrcodeSupportedFormats.CODE_128,
+              Html5QrcodeSupportedFormats.EAN_13,
+              Html5QrcodeSupportedFormats.EAN_8,
+              Html5QrcodeSupportedFormats.UPC_A,
+              Html5QrcodeSupportedFormats.UPC_E,
+              Html5QrcodeSupportedFormats.CODE_39,
+              Html5QrcodeSupportedFormats.CODE_93,
+              Html5QrcodeSupportedFormats.ITF,
+              Html5QrcodeSupportedFormats.CODABAR
+            ]
+          },
+          async (decodedText) => {
+            if (scanLocked) {
+              return;
+            }
+
+            scanLocked = true;
+            barcodeInput.value = decodedText;
+            await stopCamera();
+            await fetchByBarcode(decodedText);
+            setTimeout(() => {
+              scanLocked = false;
+            }, 800);
+          }
+        );
+
+        cameraRunning = true;
+        cameraToggleBtn.textContent = 'Kamera stoppen';
+        cameraStatus.textContent = 'Kamera aktiv';
+        clearMessage();
+      } catch (error) {
+        console.error('Kamera-Start fehlgeschlagen:', error);
+        setMessage('Kamera konnte nicht gestartet werden. Bitte Berechtigung prüfen.', 'danger');
+        cameraPlaceholder.classList.remove('d-none');
+        reader.classList.add('d-none');
+      }
+    }
+
+    cameraToggleBtn.addEventListener('click', async () => {
+      if (cameraRunning) {
+        await stopCamera();
+        return;
+      }
+
+      await startCamera();
+    });
+
+    searchBtn.addEventListener('click', () => {
+      fetchByBarcode(barcodeInput.value);
+    });
+
+    barcodeInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        fetchByBarcode(barcodeInput.value);
+      }
+    });
+
+    window.addEventListener('beforeunload', () => {
+      stopCamera();
+    });
+  </script>
 </body>
 </html>

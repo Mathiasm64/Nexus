@@ -59,6 +59,62 @@ app.get('/lager/:lagerId/produkte', async (req: Request, res: Response) => {
   }
 });
 
+app.get('/produkte/barcode/:barcode', async (req: Request, res: Response) => {
+  try {
+    const barcode = (req.params.barcode || '').trim();
+
+    if (!barcode) {
+      return res.status(400).json({ error: 'Barcode fehlt' });
+    }
+
+    const rows = await db
+      .select({
+        productId: productTable.productId,
+        produktName: productTable.produktName,
+        barcode: productTable.barcode,
+        aktuellerBestand: productTable.aktuellerBestand,
+        mindestBestand: productTable.mindestBestand,
+        lagerName: lagerTable.lagerName,
+        regalNR: LagerplatzTable.regalNR,
+        regalSection: LagerplatzTable.regalSection,
+        regalShelf: LagerplatzTable.regalShelf,
+        menge: ZuordnungTable.menge,
+      })
+      .from(productTable)
+      .leftJoin(ZuordnungTable, eq(ZuordnungTable.productId, productTable.productId))
+      .leftJoin(LagerplatzTable, eq(LagerplatzTable.lagerplatzId, ZuordnungTable.lagerplatzId))
+      .leftJoin(lagerTable, eq(lagerTable.lagerId, LagerplatzTable.lagerId))
+      .where(eq(productTable.barcode, barcode));
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Produkt nicht gefunden' });
+    }
+
+    const first = rows[0];
+    const lagerplaetze = rows
+      .filter((row) => row.regalNR !== null && row.regalSection !== null && row.regalShelf !== null)
+      .map((row) => ({
+        lagerName: row.lagerName,
+        position: `${row.regalNR}-${row.regalSection}-${row.regalShelf}`,
+        menge: row.menge,
+      }));
+
+    return res.json({
+      product: {
+        productId: first.productId,
+        produktName: first.produktName,
+        barcode: first.barcode,
+        aktuellerBestand: first.aktuellerBestand,
+        mindestBestand: first.mindestBestand,
+      },
+      lagerplaetze,
+    });
+  } catch (err) {
+    console.error('Barcode lookup error:', err);
+    return res.status(500).json({ error: 'Fehler bei der Barcode-Suche' });
+  }
+});
+
 app.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body as { email?: string; password?: string };
