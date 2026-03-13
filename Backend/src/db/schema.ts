@@ -34,6 +34,7 @@ export const ZuordnungTable = pgTable('zuordnungTable', {
 export const productTable = pgTable('productTable', {
   productId: serial("product_id").primaryKey(),
   produktName: text("produkt_name").notNull(),
+  kategorie: text("kategorie"),
   mindestBestand: integer("mindest_bestand").notNull(),
   aktuellerBestand: integer("aktueller_bestand").notNull(),
   barcode: varchar({ length: 128 }).notNull().unique(),

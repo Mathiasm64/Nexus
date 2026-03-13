@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from './db';
 import { userTable, lagerTable, LagerplatzTable, ZuordnungTable, productTable } from './db/schema';
 import { neon } from '@neondatabase/serverless';
@@ -35,17 +35,27 @@ app.get('/lager/:lagerId/produkte', async (req: Request, res: Response) => {
   try {
     const { lagerId } = req.params;
     const lagerIdNum = parseInt(lagerId);
+
+    if (Number.isNaN(lagerIdNum)) {
+      return res.status(400).json({ error: 'Ungültige lagerId' });
+    }
     
     // Hole alle Produkte für dieses Lager
     // Über die Beziehung: Lager -> Lagerplatz -> Zuordnung -> Produkt
     const produkte = await db
       .select({
+        plId: ZuordnungTable.plId,
         productId: productTable.productId,
         produktName: productTable.produktName,
+        kategorie: productTable.kategorie,
         mindestBestand: productTable.mindestBestand,
         aktuellerBestand: productTable.aktuellerBestand,
+        lastChange: productTable.lastChange,
         barcode: productTable.barcode,
         menge: ZuordnungTable.menge,
+        regalNR: LagerplatzTable.regalNR,
+        regalSection: LagerplatzTable.regalSection,
+        regalShelf: LagerplatzTable.regalShelf,
       })
       .from(productTable)
       .innerJoin(ZuordnungTable, eq(ZuordnungTable.productId, productTable.productId))
@@ -56,6 +66,286 @@ app.get('/lager/:lagerId/produkte', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('Produkte fetch error:', err);
     return res.status(500).json({ error: 'Fehler beim Abrufen der Produkte' });
+  }
+});
+
+function parseLocation(location?: string) {
+  const fallback = { regalNR: 'A', regalSection: '01', regalShelf: '01' };
+
+  if (!location) {
+    return fallback;
+  }
+
+  const parts = location.trim().split('-');
+  if (parts.length !== 3 || parts.some((p) => p.trim().length === 0)) {
+    return fallback;
+  }
+
+  return {
+    regalNR: parts[0].trim(),
+    regalSection: parts[1].trim(),
+    regalShelf: parts[2].trim(),
+  };
+}
+
+app.post('/lager/:lagerId/produkte', async (req: Request, res: Response) => {
+  try {
+    const lagerIdNum = Number.parseInt(req.params.lagerId, 10);
+
+    if (Number.isNaN(lagerIdNum)) {
+      return res.status(400).json({ error: 'Ungültige lagerId' });
+    }
+
+    const {
+      produktName,
+      barcode,
+      menge,
+      kategorie,
+      location,
+    } = req.body as {
+      produktName?: string;
+      barcode?: string;
+      menge?: number;
+      kategorie?: string;
+      location?: string;
+    };
+
+    if (!produktName || !barcode || menge === undefined) {
+      return res.status(400).json({ error: 'produktName, barcode und menge sind erforderlich' });
+    }
+
+    const mengeNum = Number.parseInt(String(menge), 10);
+
+    if (Number.isNaN(mengeNum) || mengeNum < 0) {
+      return res.status(400).json({ error: 'Ungültige menge' });
+    }
+
+    const existingBarcode = await db
+      .select({ productId: productTable.productId })
+      .from(productTable)
+      .where(eq(productTable.barcode, barcode.trim()))
+      .limit(1);
+
+    if (existingBarcode.length > 0) {
+      return res.status(409).json({ error: 'Barcode existiert bereits' });
+    }
+
+    const parsedLocation = parseLocation(location);
+
+    let lagerplatz = await db
+      .select({ lagerplatzId: LagerplatzTable.lagerplatzId })
+      .from(LagerplatzTable)
+      .where(
+        and(
+          eq(LagerplatzTable.lagerId, lagerIdNum),
+          eq(LagerplatzTable.regalNR, parsedLocation.regalNR),
+          eq(LagerplatzTable.regalSection, parsedLocation.regalSection),
+          eq(LagerplatzTable.regalShelf, parsedLocation.regalShelf)
+        )
+      )
+      .limit(1);
+
+    if (lagerplatz.length === 0) {
+      lagerplatz = await db
+        .insert(LagerplatzTable)
+        .values({
+          lagerId: lagerIdNum,
+          regalNR: parsedLocation.regalNR,
+          regalSection: parsedLocation.regalSection,
+          regalShelf: parsedLocation.regalShelf,
+        })
+        .returning({ lagerplatzId: LagerplatzTable.lagerplatzId });
+    }
+
+    const newProduct = await db
+      .insert(productTable)
+      .values({
+        produktName: produktName.trim(),
+        barcode: barcode.trim(),
+        kategorie: kategorie?.trim() || null,
+        mindestBestand: 0,
+        aktuellerBestand: 0,
+      })
+      .returning({
+        productId: productTable.productId,
+        produktName: productTable.produktName,
+        barcode: productTable.barcode,
+        mindestBestand: productTable.mindestBestand,
+        aktuellerBestand: productTable.aktuellerBestand,
+        lastChange: productTable.lastChange,
+      });
+
+    const newZuordnung = await db
+      .insert(ZuordnungTable)
+      .values({
+        lagerplatzId: lagerplatz[0].lagerplatzId,
+        productId: newProduct[0].productId,
+        menge: mengeNum,
+      })
+      .returning({ plId: ZuordnungTable.plId, menge: ZuordnungTable.menge });
+
+    return res.status(201).json({
+      ...newProduct[0],
+      ...newZuordnung[0],
+      location: `${parsedLocation.regalNR}-${parsedLocation.regalSection}-${parsedLocation.regalShelf}`,
+    });
+  } catch (err) {
+    console.error('Produkt create error:', err);
+    return res.status(500).json({ error: 'Fehler beim Erstellen des Produkts' });
+  }
+});
+
+app.put('/lager/:lagerId/produkte/:plId', async (req: Request, res: Response) => {
+  try {
+    const lagerIdNum = Number.parseInt(req.params.lagerId, 10);
+    const plIdNum = Number.parseInt(req.params.plId, 10);
+
+    if (Number.isNaN(lagerIdNum) || Number.isNaN(plIdNum)) {
+      return res.status(400).json({ error: 'Ungültige IDs' });
+    }
+
+    const {
+      produktName,
+      barcode,
+      menge,
+      kategorie,
+      location,
+    } = req.body as {
+      produktName?: string;
+      barcode?: string;
+      menge?: number;
+      kategorie?: string;
+      location?: string;
+    };
+
+    if (!produktName || !barcode || menge === undefined) {
+      return res.status(400).json({ error: 'produktName, barcode und menge sind erforderlich' });
+    }
+
+    const mengeNum = Number.parseInt(String(menge), 10);
+    const mindestNum = 0;
+    const bestandNum = 0;
+
+    if (Number.isNaN(mengeNum) || mengeNum < 0) {
+      return res.status(400).json({ error: 'Ungültige menge' });
+    }
+
+    const mapping = await db
+      .select({
+        productId: ZuordnungTable.productId,
+        lagerplatzId: ZuordnungTable.lagerplatzId,
+      })
+      .from(ZuordnungTable)
+      .innerJoin(LagerplatzTable, eq(LagerplatzTable.lagerplatzId, ZuordnungTable.lagerplatzId))
+      .where(and(eq(ZuordnungTable.plId, plIdNum), eq(LagerplatzTable.lagerId, lagerIdNum)))
+      .limit(1);
+
+    if (mapping.length === 0) {
+      return res.status(404).json({ error: 'Produktzuordnung nicht gefunden' });
+    }
+
+    const existingBarcode = await db
+      .select({ productId: productTable.productId })
+      .from(productTable)
+      .where(eq(productTable.barcode, barcode.trim()))
+      .limit(1);
+
+    if (existingBarcode.length > 0 && existingBarcode[0].productId !== mapping[0].productId) {
+      return res.status(409).json({ error: 'Barcode existiert bereits' });
+    }
+
+    await db
+      .update(productTable)
+      .set({
+        produktName: produktName.trim(),
+        barcode: barcode.trim(),
+        kategorie: kategorie?.trim() || null,
+        mindestBestand: mindestNum,
+        aktuellerBestand: bestandNum,
+        lastChange: new Date(),
+      })
+      .where(eq(productTable.productId, mapping[0].productId));
+
+    await db
+      .update(ZuordnungTable)
+      .set({ menge: mengeNum })
+      .where(eq(ZuordnungTable.plId, plIdNum));
+
+    const parsedLocation = parseLocation(location);
+
+    let lagerplatz = await db
+      .select({ lagerplatzId: LagerplatzTable.lagerplatzId })
+      .from(LagerplatzTable)
+      .where(
+        and(
+          eq(LagerplatzTable.lagerId, lagerIdNum),
+          eq(LagerplatzTable.regalNR, parsedLocation.regalNR),
+          eq(LagerplatzTable.regalSection, parsedLocation.regalSection),
+          eq(LagerplatzTable.regalShelf, parsedLocation.regalShelf)
+        )
+      )
+      .limit(1);
+
+    if (lagerplatz.length === 0) {
+      lagerplatz = await db
+        .insert(LagerplatzTable)
+        .values({
+          lagerId: lagerIdNum,
+          regalNR: parsedLocation.regalNR,
+          regalSection: parsedLocation.regalSection,
+          regalShelf: parsedLocation.regalShelf,
+        })
+        .returning({ lagerplatzId: LagerplatzTable.lagerplatzId });
+    }
+
+    await db
+      .update(ZuordnungTable)
+      .set({ lagerplatzId: lagerplatz[0].lagerplatzId })
+      .where(eq(ZuordnungTable.plId, plIdNum));
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Produkt update error:', err);
+    return res.status(500).json({ error: 'Fehler beim Aktualisieren des Produkts' });
+  }
+});
+
+app.delete('/lager/:lagerId/produkte/:plId', async (req: Request, res: Response) => {
+  try {
+    const lagerIdNum = Number.parseInt(req.params.lagerId, 10);
+    const plIdNum = Number.parseInt(req.params.plId, 10);
+
+    if (Number.isNaN(lagerIdNum) || Number.isNaN(plIdNum)) {
+      return res.status(400).json({ error: 'Ungültige IDs' });
+    }
+
+    const mapping = await db
+      .select({ productId: ZuordnungTable.productId })
+      .from(ZuordnungTable)
+      .innerJoin(LagerplatzTable, eq(LagerplatzTable.lagerplatzId, ZuordnungTable.lagerplatzId))
+      .where(and(eq(ZuordnungTable.plId, plIdNum), eq(LagerplatzTable.lagerId, lagerIdNum)))
+      .limit(1);
+
+    if (mapping.length === 0) {
+      return res.status(404).json({ error: 'Produktzuordnung nicht gefunden' });
+    }
+
+    await db.delete(ZuordnungTable).where(eq(ZuordnungTable.plId, plIdNum));
+
+    const remainingMappings = await db
+      .select({ plId: ZuordnungTable.plId })
+      .from(ZuordnungTable)
+      .where(eq(ZuordnungTable.productId, mapping[0].productId))
+      .limit(1);
+
+    if (remainingMappings.length === 0) {
+      await db.delete(productTable).where(eq(productTable.productId, mapping[0].productId));
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Produkt delete error:', err);
+    return res.status(500).json({ error: 'Fehler beim Löschen des Produkts' });
   }
 });
 
