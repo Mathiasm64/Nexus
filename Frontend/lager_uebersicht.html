@@ -201,111 +201,7 @@
                     </tr>
                 </thead>
                 <tbody id="inventoryBody">
-                    <tr>
-                        <td>Steel Plates 10mm</td>
-                        <td><span class="barcode">|||| 7894561230001</span></td>
-                        <td><span class="badge badge-raw-materials">Raw Materials</span></td>
-                        <td>500</td>
-                        <td>Main Manufacturing Warehouse</td>
-                        <td>A-12-03</td>
-                        <td>2025-10-14</td>
-                        <td>
-                            <div class="action-icons">
-                                <a href="#"><i class="fas fa-edit"></i></a>
-                                <a href="#" class="delete"><i class="fas fa-trash"></i></a>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Aluminum Rods 5m</td>
-                        <td><span class="barcode">|||| 7894561230002</span></td>
-                        <td><span class="badge badge-raw-materials">Raw Materials</span></td>
-                        <td>250</td>
-                        <td>Main Manufacturing Warehouse</td>
-                        <td>A-15-08</td>
-                        <td>2025-10-13</td>
-                        <td>
-                            <div class="action-icons">
-                                <a href="#"><i class="fas fa-edit"></i></a>
-                                <a href="#" class="delete"><i class="fas fa-trash"></i></a>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Electric Motors 5HP</td>
-                        <td><span class="barcode">|||| 7894561230003</span></td>
-                        <td><span class="badge badge-components">Components</span></td>
-                        <td>120</td>
-                        <td>Main Manufacturing Warehouse</td>
-                        <td>B-05-12</td>
-                        <td>2025-10-15</td>
-                        <td>
-                            <div class="action-icons">
-                                <a href="#"><i class="fas fa-edit"></i></a>
-                                <a href="#" class="delete"><i class="fas fa-trash"></i></a>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Bearing Sets Type A</td>
-                        <td><span class="barcode">|||| 7894561230004</span></td>
-                        <td><span class="badge badge-components">Components</span></td>
-                        <td>800</td>
-                        <td>Distribution Center North</td>
-                        <td>C-02-15</td>
-                        <td>2025-10-12</td>
-                        <td>
-                            <div class="action-icons">
-                                <a href="#"><i class="fas fa-edit"></i></a>
-                                <a href="#" class="delete"><i class="fas fa-trash"></i></a>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Hydraulic Pumps HP-200</td>
-                        <td><span class="barcode">|||| 7894561230005</span></td>
-                        <td><span class="badge badge-components">Components</span></td>
-                        <td>45</td>
-                        <td>Distribution Center North</td>
-                        <td>D-08-04</td>
-                        <td>2025-10-16</td>
-                        <td>
-                            <div class="action-icons">
-                                <a href="#"><i class="fas fa-edit"></i></a>
-                                <a href="#" class="delete"><i class="fas fa-trash"></i></a>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Welding Rods 3mm</td>
-                        <td><span class="barcode">|||| 7894561230006</span></td>
-                        <td><span class="badge badge-consumables">Consumables</span></td>
-                        <td>2 000</td>
-                        <td>Assembly Warehouse</td>
-                        <td>E-01-02</td>
-                        <td>2025-10-11</td>
-                        <td>
-                            <div class="action-icons">
-                                <a href="#"><i class="fas fa-edit"></i></a>
-                                <a href="#" class="delete"><i class="fas fa-trash"></i></a>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Industrial Lubricant 5L</td>
-                        <td><span class="barcode">|||| 7894561230007</span></td>
-                        <td><span class="badge badge-consumables">Consumables</span></td>
-                        <td>150</td>
-                        <td>Assembly Warehouse</td>
-                        <td>E-03-07</td>
-                        <td>2025-10-10</td>
-                        <td>
-                            <div class="action-icons">
-                                <a href="#"><i class="fas fa-edit"></i></a>
-                                <a href="#" class="delete"><i class="fas fa-trash"></i></a>
-                            </div>
-                        </td>
-                    </tr>
+                    
                 </tbody>
             </table>
         </div>
@@ -379,6 +275,7 @@
         const formError = document.getElementById('formError');
         const searchInput = document.getElementById('searchInput');
         const warehouseFilter = document.getElementById('warehouseFilter');
+        const categoryFilter = document.getElementById('categoryFilter');
 
         let produkteState = [];
         let lagerState = [];
@@ -456,12 +353,17 @@
 
         function renderProducts() {
             const query = (searchInput.value || '').trim().toLowerCase();
+            const selectedCategory = (categoryFilter.value || '').trim().toLowerCase();
             const filtered = produkteState.filter((product) => {
-                if (!query) return true;
-                return (
+                const matchesQuery = !query || (
                     (product.produktName || '').toLowerCase().includes(query) ||
                     String(product.barcode || '').toLowerCase().includes(query)
                 );
+
+                const matchesCategory = !selectedCategory || selectedCategory === 'all categories' ||
+                    (product.kategorie || '').toLowerCase() === selectedCategory;
+
+                return matchesQuery && matchesCategory;
             });
 
             if (!filtered.length) {
@@ -658,6 +560,7 @@
         itemForm.addEventListener('submit', saveProduct);
         searchInput.addEventListener('input', renderProducts);
         warehouseFilter.addEventListener('change', loadProducts);
+        categoryFilter.addEventListener('change', renderProducts);
 
         tbody.addEventListener('click', (event) => {
             const target = event.target.closest('a');

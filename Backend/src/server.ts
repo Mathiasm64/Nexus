@@ -240,9 +240,15 @@ app.delete('/zuordnung/:id', async (req: Request, res: Response) => {
 });
 
 // --- CRUD für Produkt ---
-app.get('/produkt', async (_req: Request, res: Response) => {
+app.get('/produkt', async (req: Request, res: Response) => {
   try {
-    const produkte = await db.select().from(productTable);
+    const { kategorie } = req.query;
+    let produkte;
+    if (kategorie) {
+      produkte = await db.select().from(productTable).where(eq(productTable.kategorie, String(kategorie)));
+    } else {
+      produkte = await db.select().from(productTable);
+    }
     return res.json(produkte);
   } catch (err) {
     return res.status(500).json({ error: 'Fehler beim Abrufen der Produkte' });
