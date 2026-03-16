@@ -21,6 +21,8 @@ app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok' });
 });
 
+
+// --- CRUD für Lager ---
 app.get('/lager', async (_req: Request, res: Response) => {
   try {
     const lager = await db.select().from(lagerTable);
@@ -28,6 +30,266 @@ app.get('/lager', async (_req: Request, res: Response) => {
   } catch (err) {
     console.error('Lager fetch error:', err);
     return res.status(500).json({ error: 'Fehler beim Abrufen der Lager' });
+  }
+});
+
+app.get('/lager/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const result = await db.select().from(lagerTable).where(eq(lagerTable.lagerId, id));
+    if (result.length === 0) return res.status(404).json({ error: 'Nicht gefunden' });
+    return res.json(result[0]);
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Abrufen' });
+  }
+});
+
+app.post('/lager', async (req: Request, res: Response) => {
+  try {
+    const { lagerName, standort } = req.body;
+    if (!lagerName || !standort) return res.status(400).json({ error: 'lagerName und standort benötigt' });
+    const result = await db.insert(lagerTable).values({ lagerName, standort }).returning();
+    return res.status(201).json(result[0]);
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Erstellen' });
+  }
+});
+
+app.put('/lager/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { lagerName, standort } = req.body;
+    const result = await db.update(lagerTable).set({ lagerName, standort }).where(eq(lagerTable.lagerId, id)).returning();
+    if (result.length === 0) return res.status(404).json({ error: 'Nicht gefunden' });
+    return res.json(result[0]);
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Aktualisieren' });
+  }
+});
+
+app.delete('/lager/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    await db.delete(lagerTable).where(eq(lagerTable.lagerId, id));
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Löschen' });
+  }
+});
+
+// --- CRUD für User ---
+app.get('/user', async (_req: Request, res: Response) => {
+  try {
+    const users = await db.select().from(userTable);
+    return res.json(users);
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Abrufen der User' });
+  }
+});
+
+app.get('/user/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const result = await db.select().from(userTable).where(eq(userTable.benutzerId, id));
+    if (result.length === 0) return res.status(404).json({ error: 'Nicht gefunden' });
+    return res.json(result[0]);
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Abrufen' });
+  }
+});
+
+app.post('/user', async (req: Request, res: Response) => {
+  try {
+    const { benutzername, email, passwortHash, rolle } = req.body;
+    if (!benutzername || !email || !passwortHash || !rolle) return res.status(400).json({ error: 'Alle Felder benötigt' });
+    const result = await db.insert(userTable).values({ benutzername, email, passwortHash, rolle }).returning();
+    return res.status(201).json(result[0]);
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Erstellen' });
+  }
+});
+
+app.put('/user/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { benutzername, email, passwortHash, rolle } = req.body;
+    const result = await db.update(userTable).set({ benutzername, email, passwortHash, rolle }).where(eq(userTable.benutzerId, id)).returning();
+    if (result.length === 0) return res.status(404).json({ error: 'Nicht gefunden' });
+    return res.json(result[0]);
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Aktualisieren' });
+  }
+});
+
+app.delete('/user/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    await db.delete(userTable).where(eq(userTable.benutzerId, id));
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Löschen' });
+  }
+});
+
+// --- CRUD für Lagerplatz ---
+app.get('/lagerplatz', async (_req: Request, res: Response) => {
+  try {
+    const lagerplaetze = await db.select().from(LagerplatzTable);
+    return res.json(lagerplaetze);
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Abrufen der Lagerplätze' });
+  }
+});
+
+app.get('/lagerplatz/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const result = await db.select().from(LagerplatzTable).where(eq(LagerplatzTable.lagerplatzId, id));
+    if (result.length === 0) return res.status(404).json({ error: 'Nicht gefunden' });
+    return res.json(result[0]);
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Abrufen' });
+  }
+});
+
+app.post('/lagerplatz', async (req: Request, res: Response) => {
+  try {
+    const { lagerId, regalNR, regalSection, regalShelf } = req.body;
+    if (!lagerId || !regalNR || !regalSection || !regalShelf) return res.status(400).json({ error: 'Alle Felder benötigt' });
+    const result = await db.insert(LagerplatzTable).values({ lagerId, regalNR, regalSection, regalShelf }).returning();
+    return res.status(201).json(result[0]);
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Erstellen' });
+  }
+});
+
+app.put('/lagerplatz/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { lagerId, regalNR, regalSection, regalShelf } = req.body;
+    const result = await db.update(LagerplatzTable).set({ lagerId, regalNR, regalSection, regalShelf }).where(eq(LagerplatzTable.lagerplatzId, id)).returning();
+    if (result.length === 0) return res.status(404).json({ error: 'Nicht gefunden' });
+    return res.json(result[0]);
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Aktualisieren' });
+  }
+});
+
+app.delete('/lagerplatz/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    await db.delete(LagerplatzTable).where(eq(LagerplatzTable.lagerplatzId, id));
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Löschen' });
+  }
+});
+
+// --- CRUD für Zuordnung ---
+app.get('/zuordnung', async (_req: Request, res: Response) => {
+  try {
+    const zuordnungen = await db.select().from(ZuordnungTable);
+    return res.json(zuordnungen);
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Abrufen der Zuordnungen' });
+  }
+});
+
+app.get('/zuordnung/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const result = await db.select().from(ZuordnungTable).where(eq(ZuordnungTable.plId, id));
+    if (result.length === 0) return res.status(404).json({ error: 'Nicht gefunden' });
+    return res.json(result[0]);
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Abrufen' });
+  }
+});
+
+app.post('/zuordnung', async (req: Request, res: Response) => {
+  try {
+    const { lagerplatzId, productId, menge } = req.body;
+    if (!lagerplatzId || !productId || menge === undefined) return res.status(400).json({ error: 'Alle Felder benötigt' });
+    const result = await db.insert(ZuordnungTable).values({ lagerplatzId, productId, menge }).returning();
+    return res.status(201).json(result[0]);
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Erstellen' });
+  }
+});
+
+app.put('/zuordnung/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { lagerplatzId, productId, menge } = req.body;
+    const result = await db.update(ZuordnungTable).set({ lagerplatzId, productId, menge }).where(eq(ZuordnungTable.plId, id)).returning();
+    if (result.length === 0) return res.status(404).json({ error: 'Nicht gefunden' });
+    return res.json(result[0]);
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Aktualisieren' });
+  }
+});
+
+app.delete('/zuordnung/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    await db.delete(ZuordnungTable).where(eq(ZuordnungTable.plId, id));
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Löschen' });
+  }
+});
+
+// --- CRUD für Produkt ---
+app.get('/produkt', async (_req: Request, res: Response) => {
+  try {
+    const produkte = await db.select().from(productTable);
+    return res.json(produkte);
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Abrufen der Produkte' });
+  }
+});
+
+app.get('/produkt/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const result = await db.select().from(productTable).where(eq(productTable.productId, id));
+    if (result.length === 0) return res.status(404).json({ error: 'Nicht gefunden' });
+    return res.json(result[0]);
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Abrufen' });
+  }
+});
+
+app.post('/produkt', async (req: Request, res: Response) => {
+  try {
+    const { produktName, kategorie, mindestBestand, aktuellerBestand, barcode } = req.body;
+    if (!produktName || !barcode || mindestBestand === undefined || aktuellerBestand === undefined) return res.status(400).json({ error: 'Alle Felder benötigt' });
+    const result = await db.insert(productTable).values({ produktName, kategorie, mindestBestand, aktuellerBestand, barcode }).returning();
+    return res.status(201).json(result[0]);
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Erstellen' });
+  }
+});
+
+app.put('/produkt/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { produktName, kategorie, mindestBestand, aktuellerBestand, barcode } = req.body;
+    const result = await db.update(productTable).set({ produktName, kategorie, mindestBestand, aktuellerBestand, barcode }).where(eq(productTable.productId, id)).returning();
+    if (result.length === 0) return res.status(404).json({ error: 'Nicht gefunden' });
+    return res.json(result[0]);
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Aktualisieren' });
+  }
+});
+
+app.delete('/produkt/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    await db.delete(productTable).where(eq(productTable.productId, id));
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: 'Fehler beim Löschen' });
   }
 });
 
