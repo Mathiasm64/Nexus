@@ -99,7 +99,7 @@
   <!-- Top Navbar -->
   <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
     <div class="container-fluid px-4">
-      <a class="navbar-brand" href="http://localhost:8080/home.html">
+      <a class="navbar-brand" href="http://127.0.0.1:5500/Frontend/home.html">
         <i class="bi bi-box-seam me-2"></i>WarehouseHub
       </a>
       <button
@@ -117,15 +117,15 @@
       <div class="collapse navbar-collapse" id="mainNavbar">
         <ul class="navbar-nav ms-3 me-auto mb-2 mb-lg-0">
           <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="http://localhost:8080/lager_uebersicht.html">
+            <a class="nav-link active" aria-current="page" href="http://127.0.0.1:5500/Frontend/lager_uebersicht.html">
               Warehouses
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="http://localhost:8080/Scanner.html">Scanner</a>
+            <a class="nav-link" href="http://127.0.0.1:5500/Frontend/Scanner.html">Scanner</a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#">Admin</a>
+          <li class="nav-item" id="adminNavItem" style="display: none;">
+            <a class="nav-link" href="http://127.0.0.1:5500/Frontend/Admin.html">Admin</a>
           </li>
         </ul>
 
@@ -152,10 +152,10 @@
       <div class="top-tabs d-flex align-items-center gap-2 mt-3 mt-sm-0">
         <ul class="nav">
           <li class="nav-item">
-            <a href="http://localhost:8080/lager_uebersicht.html?lagerId=${warehouse.lagerId}" class="nav-link active" href="#">Warehouses</a>
+            <a href="http://127.0.0.1:5500/Frontend/lager_uebersicht.html?lagerId=${warehouse.lagerId}" class="nav-link active" href="#">Warehouses</a>
           </li>
           <li class="nav-item">
-            <a href="http://localhost:8080/lager_uebersicht.html?lagerId=${warehouse.lagerId}" class="nav-link" href="#">Inventory
+            <a href="http://127.0.0.1:5500/Frontend/lager_uebersicht.html?lagerId=${warehouse.lagerId}" class="nav-link" href="#">Inventory
             
             </a>
            
@@ -188,7 +188,7 @@
       
       if (!token || !user) {
         // Redirect to login if not authenticated
-        window.location.href = 'http://localhost:8080/login.html';
+        window.location.href = 'http://127.0.0.1:5500/Frontend/login.html';
         return;
       }
       
@@ -196,6 +196,12 @@
       try {
         const userData = JSON.parse(user);
         document.getElementById('userName').textContent = userData.name || userData.email;
+        
+        // Show Admin link only for admin@example.com
+        const adminNavItem = document.getElementById('adminNavItem');
+        if (userData.email === 'admin@example.com') {
+          adminNavItem.style.display = 'block';
+        }
       } catch (error) {
         console.error('Error parsing user data:', error);
         document.getElementById('userName').textContent = 'Benutzer';
@@ -209,7 +215,7 @@
       localStorage.removeItem('user');
       
       // Redirect to login page
-      window.location.href = 'http://localhost:8080/login.html';
+      window.location.href = 'http://127.0.0.1:5500/Frontend/login.html';
     });
     
     // Check authentication on page load
@@ -218,7 +224,7 @@
     // Load warehouses
     async function loadWarehouses() {
       try {
-        const response = await fetch('http://localhost:3000/lager');
+        const response = await fetch('http://127.0.0.1:5500/lager');
         if (!response.ok) {
           throw new Error('Fehler beim Abrufen der Lager');
         }
@@ -280,7 +286,7 @@
           const standort = document.getElementById('standort').value;
           
           try {
-            const response = await fetch('http://localhost:3000/lager', {
+            const response = await fetch('http://127.0.0.1:5500/lager', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'

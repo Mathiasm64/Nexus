@@ -7,6 +7,7 @@ import { and, eq } from 'drizzle-orm';
 import { db } from './db';
 import { userTable, lagerTable, LagerplatzTable, ZuordnungTable, productTable } from './db/schema';
 import { neon } from '@neondatabase/serverless';
+import path from 'path';
 
 dotenv.config();
 
@@ -14,7 +15,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT ? Number(process.env.PORT) : 3001;
+// Serve Frontend static files
+const frontendPath = path.join(__dirname, '../../Frontend');
+app.use('/Frontend', express.static(frontendPath));
+
+const PORT = process.env.PORT ? Number(process.env.PORT) : 5500;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
 app.get('/health', (_req: Request, res: Response) => {
@@ -732,8 +737,8 @@ app.post('/login', async (req: Request, res: Response) => {
   }
 })();
 
-app.listen(PORT, () => {
-  console.log(`Auth server läuft auf Port ${PORT}`);
+app.listen(PORT, '127.0.0.1', () => {
+  console.log(`Auth server läuft auf http://127.0.0.1:${PORT}`);
 });
 
 

@@ -165,9 +165,9 @@
             </form>
         </div>
 
-        <div class="signup-link">
-            <a href="http://localhost:8080/User%20anlegen.html">Neuen Benutzer erstellen</a>
-        </div>
+        <!--<div class="signup-link">
+            <a href="http://127.0.0.1:5500/Frontend/Admin.html">Neuen Benutzer erstellen</a>
+        </div>-->
     </div>
 
 
@@ -179,7 +179,7 @@
             const password = document.getElementById('password').value;
             
             try {
-                const response = await fetch('http://localhost:3000/login', {
+                const response = await fetch('http://127.0.0.1:5500/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

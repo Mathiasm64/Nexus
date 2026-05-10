@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'http://127.0.0.1:5500';
 
 async function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -273,6 +273,51 @@ async function seedDatabase() {
     });
     console.log(`✓ Zuordnung 6 erstellt`);
 
+    // 4. Nutzer erstellen
+    console.log('👤 Erstelle Nutzer...');
+    const userResponse1 = await fetch(`${BASE_URL}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        benutzername: 'Admin',
+        email: 'admin@example.com',
+        password: 'admin123',
+        rolle: 'admin',
+      }),
+    });
+    const user1 = await userResponse1.json();
+    console.log(`✓ Nutzer 1 erstellt: admin@example.com`);
+
+    await sleep(300);
+
+    const userResponse2 = await fetch(`${BASE_URL}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        benutzername: 'Warehouse Manager',
+        email: 'manager@example.com',
+        password: 'manager123',
+        rolle: 'manager',
+      }),
+    });
+    const user2 = await userResponse2.json();
+    console.log(`✓ Nutzer 2 erstellt: manager@example.com`);
+
+    await sleep(300);
+
+    const userResponse3 = await fetch(`${BASE_URL}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        benutzername: 'Scanner User',
+        email: 'scanner@example.com',
+        password: 'scanner123',
+        rolle: 'user',
+      }),
+    });
+    const user3 = await userResponse3.json();
+    console.log(`✓ Nutzer 3 erstellt: scanner@example.com`);
+
     console.log('');
     console.log('✅ Seed erfolgreich abgeschlossen!');
     console.log('');
@@ -281,6 +326,7 @@ async function seedDatabase() {
     console.log(`  - 6 Produkte`);
     console.log(`  - 6 Lagerplätze`);
     console.log(`  - 6 Zuordnungen`);
+    console.log(`  - 3 Nutzer`);
     console.log('');
     console.log('Du kannst jetzt die Webseite aktualisieren und solltest die Daten sehen!');
 

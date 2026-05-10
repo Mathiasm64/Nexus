@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <title>Admin - Verwaltung</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+    <style>
+        body { background-color: #f5f5f7; }
+        .content-wrapper { padding-top: 80px; }
+        .card-sm { border-radius: 10px; }
+        .user-row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    </style>
+</head>
+<body>
+    <!-- Navbar (reuse design) -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand" href="http://127.0.0.1:5500/Frontend/home.html">
+                <i class="bi bi-box-seam me-2"></i>WarehouseHub
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="mainNavbar">
+                <ul class="navbar-nav ms-3 me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="http://127.0.0.1:5500/Frontend/lager_uebersicht.html">Warehouses</a></li>
+                    <li class="nav-item"><a class="nav-link" href="http://127.0.0.1:5500/Frontend/Scanner.html">Scanner</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="http://127.0.0.1:5500/Frontend/Admin.html">Admin</a></li>
+                </ul>
+
+                <div class="d-flex align-items-center gap-3">
+                    <span class="text-muted small">angemeldet als: <span id="userName">loading...</span></span>
+                    <button class="btn btn-outline-secondary btn-sm" id="logoutBtn">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="content-wrapper container mt-4">
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="card card-sm p-3">
+                    <h5 class="mb-3">Benutzerverwaltung</h5>
+                        <!-- Create user -->
+                        <form id="createUserForm" class="row g-2 mb-3">
+                            <div class="col-12"><input id="newUsername" class="form-control" placeholder="Benutzername" required></div>
+                            <div class="col-12"><input id="newEmail" type="email" class="form-control" placeholder="E-Mail" required></div>
+                            <div class="col-12"><input id="newPassword" type="password" class="form-control" placeholder="Passwort" required></div>
+                            <div class="col-12"><button class="btn btn-success mt-2" type="submit">Benutzer anlegen</button></div>
+                        </form>
+
+                        <div class="mb-2">
+                          <input id="userSearch" class="form-control" placeholder="Suche Benutzer nach Name oder E-Mail">
+                        </div>
+
+                        <div id="usersList">
+                            <!-- Users will be listed here -->
+                        </div>
+                        <div id="usersEmpty" class="text-muted mt-2 d-none">Keine Benutzer vorhanden.</div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card card-sm p-3">
+                    <h5 class="mb-3">Lagerverwaltung</h5>
+
+                    <form id="addWarehouseForm" class="row g-2 mb-3">
+                        <div class="col-7"><input id="lagerName" class="form-control" placeholder="Lager Name" required></div>
+                        <div class="col-5"><input id="standort" class="form-control" placeholder="Standort" required></div>
+                        <div class="col-12"><button class="btn btn-primary mt-2" type="submit">Neues Lager hinzufügen</button></div>
+                    </form>
+
+                    <div id="warehousesList">
+                        <!-- Warehouses listed here -->
+                    </div>
+                    <div id="warehousesEmpty" class="text-muted mt-2 d-none">Keine Lager vorhanden.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- User detail modal -->
+<div class="modal fade" id="userDetailModal" tabindex="-1" aria-labelledby="userDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userDetailModalLabel">Benutzer Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Benutzername:</strong> <span id="detailUsername"></span></p>
+                <p><strong>E-Mail:</strong> <span id="detailEmail"></span></p>
+                <p><strong>Passwort (Hash):</strong> <code id="detailPassword"></code></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_BASE = 'http://127.0.0.1:5500';
+
+        // Auth checks
+        function checkAuthentication() {
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            if (!token || !user) {
+                window.location.href = 'http://127.0.0.1:5500/Frontend/login.html';
+                return false;
+            }
+            try {
+                const userData = JSON.parse(user);
+                document.getElementById('userName').textContent = userData.name || userData.email;
+                if (userData.email !== 'admin@example.com') {
+                    // not admin -> redirect
+                    alert('Nur Admins dürfen diese Seite sehen');
+                    window.location.href = 'http://127.0.0.1:5500/Frontend/home.html';
+                    return false;
+                }
+                return true;
+            } catch (e) {
+                localStorage.removeItem('user');
+                window.location.href = 'http://127.0.0.1:5500/Frontend/login.html';
+                return false;
+            }
+        }
+
+        let loadedUsers = [];
+        let loadedWarehouses = [];
+
+        function setUsersEmpty(show) {
+            document.getElementById('usersEmpty').classList.toggle('d-none', !show);
+        }
+        function setWarehousesEmpty(show) {
+            document.getElementById('warehousesEmpty').classList.toggle('d-none', !show);
+        }
+
+        // render users with optional filter
+        function renderUsers(filter = '') {
+            const el = document.getElementById('usersList');
+            el.innerHTML = '';
+            const q = filter.trim().toLowerCase();
+            const list = loadedUsers.filter(u => {
+                if (!q) return true;
+                return (u.benutzername || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q);
+            });
+            if (list.length === 0) { setUsersEmpty(true); return; }
+            setUsersEmpty(false);
+            list.forEach(u => {
+                const row = document.createElement('div');
+                row.className = 'user-row py-2 border-bottom';
+                row.innerHTML = `<div style="cursor:pointer"><strong>${u.benutzername || u.email}</strong><div class="text-muted small">${u.email}</div></div>`;
+                // click to show details
+                row.firstElementChild.addEventListener('click', () => showUserDetails(u));
+
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-sm btn-outline-danger';
+                btn.textContent = 'Entfernen';
+                btn.addEventListener('click', (ev) => { ev.stopPropagation(); removeUser(u.benutzerId); });
+                row.appendChild(btn);
+                el.appendChild(row);
+            });
+        }
+
+        async function loadUsers() {
+            try {
+                const res = await fetch(`${API_BASE}/user`);
+                const data = await res.json();
+                if (!Array.isArray(data) || data.length === 0) { loadedUsers = []; setUsersEmpty(true); return; }
+                loadedUsers = data;
+                renderUsers();
+            } catch (err) { console.error('Fehler beim Laden der Benutzer', err); loadedUsers = []; setUsersEmpty(true); }
+        }
+
+        function showUserDetails(u) {
+            document.getElementById('detailUsername').textContent = u.benutzername || '';
+            document.getElementById('detailEmail').textContent = u.email || '';
+            document.getElementById('detailPassword').textContent = u.passwortHash || '(keine)';
+            const modal = new bootstrap.Modal(document.getElementById('userDetailModal'));
+            modal.show();
+        }
+
+        async function removeUser(id) {
+            if (!confirm('Benutzer wirklich entfernen?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/user/${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Löschen fehlgeschlagen');
+                await loadUsers();
+            } catch (err) { alert('Fehler beim Entfernen des Benutzers'); console.error(err); }
+        }
+
+        async function loadWarehouses() {
+            try {
+                const res = await fetch(`${API_BASE}/lager`);
+                const data = await res.json();
+                if (!Array.isArray(data) || data.length === 0) { loadedWarehouses = []; setWarehousesEmpty(true); return; }
+                loadedWarehouses = data;
+                renderWarehouses();
+            } catch (err) { console.error('Fehler beim Laden der Lager', err); loadedWarehouses = []; setWarehousesEmpty(true); }
+        }
+
+        function renderWarehouses(filter = '') {
+            const el = document.getElementById('warehousesList');
+            el.innerHTML = '';
+            const q = filter.trim().toLowerCase();
+            const list = loadedWarehouses.filter(l => {
+                if (!q) return true;
+                return (l.lagerName || '').toLowerCase().includes(q) || (l.standort || '').toLowerCase().includes(q);
+            });
+            if (list.length === 0) { setWarehousesEmpty(true); return; }
+            setWarehousesEmpty(false);
+            list.forEach(l => {
+                const row = document.createElement('div');
+                row.className = 'd-flex align-items-center justify-content-between py-2 border-bottom';
+                row.innerHTML = `<div><strong>${l.lagerName}</strong><div class="text-muted small">${l.standort}</div></div>`;
+                const btn = document.createElement('button');
+                btn.className = 'btn btn-sm btn-outline-danger';
+                btn.textContent = 'Entfernen';
+                btn.addEventListener('click', () => removeWarehouse(l.lagerId));
+                row.appendChild(btn);
+                el.appendChild(row);
+            });
+        }
+
+        async function removeWarehouse(id) {
+            if (!confirm('Lager wirklich entfernen?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/lager/${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Löschen fehlgeschlagen');
+                await loadWarehouses();
+            } catch (err) { alert('Fehler beim Entfernen des Lagers'); console.error(err); }
+        }
+
+        document.getElementById('addWarehouseForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('lagerName').value.trim();
+            const standort = document.getElementById('standort').value.trim();
+            if (!name || !standort) return alert('Bitte beide Felder ausfüllen');
+            try {
+                const res = await fetch(`${API_BASE}/lager`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lagerName: name, standort }) });
+                if (!res.ok) throw new Error('Erstellen fehlgeschlagen');
+                document.getElementById('lagerName').value = '';
+                document.getElementById('standort').value = '';
+                await loadWarehouses();
+            } catch (err) { alert('Fehler beim Erstellen des Lagers'); console.error(err); }
+        });
+
+        // create user via /register (server will hash password)
+        document.getElementById('createUserForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('newUsername').value.trim();
+            const email = document.getElementById('newEmail').value.trim();
+            const password = document.getElementById('newPassword').value;
+            if (!username || !email || !password) return alert('Bitte alle Felder ausfüllen');
+            try {
+                const res = await fetch(`${API_BASE}/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, email, password }) });
+                const data = await res.json();
+                if (!res.ok) { alert(data.error || 'Erstellen fehlgeschlagen'); return; }
+                document.getElementById('newUsername').value = '';
+                document.getElementById('newEmail').value = '';
+                document.getElementById('newPassword').value = '';
+                await loadUsers();
+            } catch (err) { alert('Fehler beim Erstellen des Benutzers'); console.error(err); }
+        });
+
+        // search handlers
+        document.getElementById('userSearch').addEventListener('input', (e) => renderUsers(e.target.value));
+        // dynamic warehouse search field (inserted earlier?) create one
+        const whSearchContainer = document.createElement('div');
+        whSearchContainer.className = 'mb-2';
+        whSearchContainer.innerHTML = '<input id="warehouseSearch" class="form-control" placeholder="Suche Lager nach Name oder Standort">';
+        document.getElementById('addWarehouseForm').before(whSearchContainer);
+        document.getElementById('warehouseSearch').addEventListener('input', (e) => renderWarehouses(e.target.value));
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('token'); localStorage.removeItem('user'); window.location.href = 'http://127.0.0.1:5500/Frontend/login.html';
+        });
+
+        // init
+        if (checkAuthentication()) {
+            loadUsers();
+            loadWarehouses();
+        }
+    </script>
+</body>
+</html>
