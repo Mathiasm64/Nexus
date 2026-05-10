@@ -149,6 +149,7 @@
           Verwalte deine Lagerstandorte und Bestände.
         </div>
       </div>
+      <!--
       <div class="top-tabs d-flex align-items-center gap-2 mt-3 mt-sm-0">
         <ul class="nav">
           <li class="nav-item">
@@ -164,7 +165,7 @@
         <button class="btn btn-primary ms-2" id="addWarehouseBtn">
           <i class="bi bi-plus-lg me-1"></i> Add Warehouse
         </button>
-      </div>
+      </div>-->
     </div>
 
     <!-- Warehouse cards row -->
@@ -247,13 +248,13 @@
       
       container.innerHTML = lager.map(warehouse => `
         <div class="col-md-6 col-lg-4">
-          <div class="card card-warehouse h-100">
+          <div class="card card-warehouse h-100" style="cursor: pointer;" onclick="window.location.href='lager_uebersicht.html?lagerId=${warehouse.lagerId}'">
             <div class="card-body">
               <h5 class="card-title">${warehouse.lagerName}</h5>
               <p class="card-text">
                 <strong>Standort:</strong> ${warehouse.standort}
               </p>
-              <a href="lager_uebersicht.html?lagerId=${warehouse.lagerId}" class="btn btn-primary btn-sm">
+              <a href="lager_uebersicht.html?lagerId=${warehouse.lagerId}" class="btn btn-primary btn-sm" onclick="event.stopPropagation()">
                 <i class="bi bi-eye me-1"></i>Zur Übersicht
               </a>
             </div>

@@ -424,7 +424,13 @@
 
         async function loadProducts() {
             try {
-                const selectedWarehouseId = urlLagerId || warehouseFilter.value;
+                // Priorität: urlLagerId > warehouseFilter.value
+                let selectedWarehouseId = urlLagerId || warehouseFilter.value;
+                
+                // Stelle sicher, dass das Dropdown den gleichen Wert hat
+                if (urlLagerId) {
+                    warehouseFilter.value = urlLagerId;
+                }
 
                 if (!selectedWarehouseId || selectedWarehouseId === 'all') {
                     if (lagerState.length === 0) {
