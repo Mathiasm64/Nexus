@@ -48,50 +48,6 @@
             border-radius: 8px;
             padding: 10px 16px;
             color: #333;
-            cursor: pointer;
-        }
-
-        .btn-add-item {
-            background-color: #000;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 12px 24px;
-            font-weight: 600;
-        }
-
-        .btn-add-item:hover {
-            background-color: #333;
-            color: white;
-        }
-
-        .table-container {
-            background-color: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        .table {
-            margin-bottom: 0;
-        }
-
-        .table thead th {
-            background-color: white;
-            border-bottom: 2px solid #e0e0e0;
-            color: #333;
-            font-weight: 600;
-            padding: 16px;
-        }
-
-        .table tbody td {
-            border-bottom: 1px solid #f0f0f0;
-            padding: 16px;
-            vertical-align: middle;
-        }
-
-        .table tbody tr:hover {
-            background-color: #fafafa;
         }
 
         .badge-raw-materials {
@@ -138,19 +94,59 @@
         .action-icons .delete:hover {
             color: #c62828;
         }
+
+        .navbar-brand {
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
-    <div class="container-fluid p-4">
-        <!-- Tabs Navigation -->
-        <ul class="nav nav-tabs nav-tabs-custom" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="warehouses-tab" data-bs-toggle="tab" data-bs-target="#warehouses" type="button" role="tab" aria-controls="warehouses" aria-selected="true">
-                    Warehouses
-                </button>
-            </li>
-        </ul>
+    <!-- Top Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand" href="http://127.0.0.1:5500/Frontend/home.html">
+                <i class="bi bi-box-seam me-2"></i>WarehouseHub
+            </a>
+            <button
+                class="navbar-toggler"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#mainNavbar"
+                aria-controls="mainNavbar"
+                aria-expanded="false"
+                aria-label="Toggle navigation"
+            >
+                <span class="navbar-toggler-icon"></span>
+            </button>
 
+            <div class="collapse navbar-collapse" id="mainNavbar">
+                <ul class="navbar-nav ms-3 me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" aria-current="page" href="http://127.0.0.1:5500/Frontend/lager_uebersicht.html">
+                            Warehouses
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="http://127.0.0.1:5500/Frontend/Scanner.html">Scanner</a>
+                    </li>
+                    <li class="nav-item" id="adminNavItem" style="display: none;">
+                        <a class="nav-link" href="http://127.0.0.1:5500/Frontend/Admin.html">Admin</a>
+                    </li>
+                </ul>
+
+                <div class="d-flex align-items-center gap-3">
+                    <span class="text-muted small">angemeldet als: <span id="userName">loading...</span></span>
+                    <button class="btn btn-outline-secondary btn-sm" id="logoutBtn">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div style="height:70px"></div>
+    <div class="container-fluid p-4">
+     
         <!-- Search and Filter Bar -->
         <div class="row mb-4">
             <div class="col-md-6">
@@ -272,8 +268,36 @@
         const warehouseFilter = document.getElementById('warehouseFilter');
         const categoryFilter = document.getElementById('categoryFilter');
 
+        // Auth display: show logged-in user and admin link
+        function updateAuthDisplay() {
+            const userJson = localStorage.getItem('user');
+            const userNameEl = document.getElementById('userName');
+            const adminNavItem = document.getElementById('adminNavItem');
+            if (userJson) {
+                try {
+                    const u = JSON.parse(userJson);
+                    if (userNameEl) userNameEl.textContent = u.name || u.username || u.email || 'angemeldet';
+                    if (adminNavItem) adminNavItem.style.display = (u.email === 'admin@example.com') ? 'block' : 'none';
+                } catch (_) {
+                    if (userNameEl) userNameEl.textContent = 'angemeldet';
+                }
+            } else {
+                if (userNameEl) userNameEl.textContent = 'Nicht angemeldet';
+            }
+
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    window.location.href = 'http://127.0.0.1:5500/Frontend/login.html';
+                });
+            }
+        }
+
         let produkteState = [];
         let lagerState = [];
+        let initialLoadDone = false;
 
         function showError(message) {
             formError.textContent = message;
@@ -417,20 +441,15 @@
 
             warehouseFilter.innerHTML = options.join('');
 
-            if (urlLagerId) {
+            if (urlLagerId && !initialLoadDone) {
                 warehouseFilter.value = urlLagerId;
             }
         }
 
         async function loadProducts() {
             try {
-                // Priorität: urlLagerId > warehouseFilter.value
-                let selectedWarehouseId = urlLagerId || warehouseFilter.value;
-                
-                // Stelle sicher, dass das Dropdown den gleichen Wert hat
-                if (urlLagerId) {
-                    warehouseFilter.value = urlLagerId;
-                }
+                // Auf initialem Load: verwende urlLagerId, sonst warehouseFilter.value
+                let selectedWarehouseId = (!initialLoadDone && urlLagerId) ? urlLagerId : warehouseFilter.value;
 
                 if (!selectedWarehouseId || selectedWarehouseId === 'all') {
                     if (lagerState.length === 0) {
@@ -591,6 +610,8 @@
             try {
                 await loadWarehouses();
                 await loadProducts();
+                initialLoadDone = true;
+                updateAuthDisplay();
             } catch (error) {
                 console.error('Initialisierung fehlgeschlagen:', error);
                 tbody.innerHTML = '<tr><td colspan="8" class="text-danger">Fehler bei der Initialisierung</td></tr>';

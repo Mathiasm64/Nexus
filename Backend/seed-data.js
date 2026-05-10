@@ -4,6 +4,27 @@ async function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function replaceUser({ benutzername, email, password, rolle }) {
+  const usersResponse = await fetch(`${BASE_URL}/user`);
+  const users = await usersResponse.json();
+  const existing = Array.isArray(users) ? users.find((user) => user.email === email) : null;
+
+  if (existing) {
+    await fetch(`${BASE_URL}/user/${existing.benutzerId}`, {
+      method: 'DELETE',
+    });
+    await sleep(200);
+  }
+
+  const response = await fetch(`${BASE_URL}/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ benutzername, email, password, rolle }),
+  });
+
+  return response.json();
+}
+
 async function seedDatabase() {
   try {
     console.log('🌱 Starte Datenbank-Seed via API...');
@@ -275,47 +296,32 @@ async function seedDatabase() {
 
     // 4. Nutzer erstellen
     console.log('👤 Erstelle Nutzer...');
-    const userResponse1 = await fetch(`${BASE_URL}/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        benutzername: 'Admin',
-        email: 'admin@example.com',
-        password: 'admin123',
-        rolle: 'admin',
-      }),
+    const user1 = await replaceUser({
+      benutzername: 'Admin',
+      email: 'admin@example.com',
+      password: 'admin123',
+      rolle: 'admin',
     });
-    const user1 = await userResponse1.json();
     console.log(`✓ Nutzer 1 erstellt: admin@example.com`);
 
     await sleep(300);
 
-    const userResponse2 = await fetch(`${BASE_URL}/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        benutzername: 'Warehouse Manager',
-        email: 'manager@example.com',
-        password: 'manager123',
-        rolle: 'manager',
-      }),
+    const user2 = await replaceUser({
+      benutzername: 'Warehouse Manager',
+      email: 'manager@example.com',
+      password: 'manager123',
+      rolle: 'manager',
     });
-    const user2 = await userResponse2.json();
     console.log(`✓ Nutzer 2 erstellt: manager@example.com`);
 
     await sleep(300);
 
-    const userResponse3 = await fetch(`${BASE_URL}/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        benutzername: 'Scanner User',
-        email: 'scanner@example.com',
-        password: 'scanner123',
-        rolle: 'user',
-      }),
+    const user3 = await replaceUser({
+      benutzername: 'Scanner User',
+      email: 'scanner@example.com',
+      password: 'scanner123',
+      rolle: 'user',
     });
-    const user3 = await userResponse3.json();
     console.log(`✓ Nutzer 3 erstellt: scanner@example.com`);
 
     console.log('');

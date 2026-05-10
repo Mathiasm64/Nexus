@@ -159,11 +159,19 @@
                 // click to show details
                 row.firstElementChild.addEventListener('click', () => showUserDetails(u));
 
-                const btn = document.createElement('button');
-                btn.className = 'btn btn-sm btn-outline-danger';
-                btn.textContent = 'Entfernen';
-                btn.addEventListener('click', (ev) => { ev.stopPropagation(); removeUser(u.benutzerId); });
-                row.appendChild(btn);
+                const isProtectedAdmin = u.email === 'admin@example.com' || String(u.rolle || '').toUpperCase() === 'ADMIN';
+                if (!isProtectedAdmin) {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-sm btn-outline-danger';
+                    btn.textContent = 'Entfernen';
+                    btn.addEventListener('click', (ev) => { ev.stopPropagation(); removeUser(u.benutzerId); });
+                    row.appendChild(btn);
+                } else {
+                    const badge = document.createElement('span');
+                    badge.className = 'badge text-bg-secondary';
+                    badge.textContent = 'Geschützt';
+                    row.appendChild(badge);
+                }
                 el.appendChild(row);
             });
         }
@@ -290,3 +298,8 @@
     </script>
 </body>
 </html>
+<style>
+        .navbar-brand {
+            font-weight: 600;
+        }
+</style>

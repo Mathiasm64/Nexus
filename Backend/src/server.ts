@@ -129,6 +129,24 @@ app.put('/user/:id', async (req: Request, res: Response) => {
 app.delete('/user/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
+    const rows = await db
+      .select()
+      .from(userTable)
+      .where(eq(userTable.benutzerId, id))
+      .limit(1);
+
+    const user = rows[0];
+    if (!user) {
+      return res.status(404).json({ error: 'Nicht gefunden' });
+    }
+
+    const normalizedEmail = String(user.email || '').trim().toLowerCase();
+    const normalizedRole = String(user.rolle || '').trim().toUpperCase();
+
+    if (normalizedEmail === 'admin@example.com' || normalizedRole === 'ADMIN') {
+      return res.status(403).json({ error: 'Admin-Benutzer kann nicht gelöscht werden' });
+    }
+
     await db.delete(userTable).where(eq(userTable.benutzerId, id));
     return res.json({ success: true });
   } catch (err) {
@@ -730,6 +748,26 @@ app.post('/login', async (req: Request, res: Response) => {
   try {
     const sql = neon(process.env.DATABASE_URL!);
     await sql`SELECT 1`; // Test connection
+    await sql`
+      CREATE OR REPLACE FUNCTION prevent_admin_user_delete()
+      RETURNS trigger AS $$
+      BEGIN
+        IF lower(coalesce(OLD.email, '')) = 'admin@example.com'
+           OR upper(coalesce(OLD.rolle, '')) = 'ADMIN' THEN
+          RAISE EXCEPTION 'Admin-Benutzer kann nicht gelöscht werden';
+        END IF;
+
+        RETURN OLD;
+      END;
+      $$ LANGUAGE plpgsql;
+    `;
+    await sql`DROP TRIGGER IF EXISTS trg_prevent_admin_user_delete ON "userTable";`;
+    await sql`
+      CREATE TRIGGER trg_prevent_admin_user_delete
+      BEFORE DELETE ON "userTable"
+      FOR EACH ROW
+      EXECUTE FUNCTION prevent_admin_user_delete();
+    `;
     console.log('Datenbankverbindung erfolgreich');
   } catch (error) {
     console.error('Datenbankverbindungsfehler:', error);
@@ -745,7 +783,12 @@ app.listen(PORT, '127.0.0.1', () => {
 //register Anfang
 app.post('/register', async (req: Request, res: Response) => {
   try {
-    const { username, email, password } = req.body as { username?: string; email?: string; password?: string };
+    const body: any = req.body || {};
+    const username = body.username || body.benutzername;
+    const email = body.email;
+    const password = body.password;
+    const roleRaw = body.role || body.rolle || 'USER';
+    const rolle = String(roleRaw).toUpperCase();
 
     if (!username || !email || !password) {
       return res.status(400).json({ error: 'Benutzername, Email und Passwort benötigt' });
@@ -765,14 +808,14 @@ app.post('/register', async (req: Request, res: Response) => {
     // Hash password
     const passwortHash = await bcrypt.hash(password, 10);
 
-    // Insert new user
+    // Insert new user with provided role
     const result = await db
       .insert(userTable)
       .values({
         benutzername: username,
         email: email,
         passwortHash: passwortHash,
-        rolle: 'USER',
+        rolle: rolle,
       })
       .returning({ id: userTable.benutzerId });
 
@@ -782,6 +825,7 @@ app.post('/register', async (req: Request, res: Response) => {
         id: result[0].id,
         username: username,
         email: email,
+        role: rolle,
       },
     });
   } catch (err) {
