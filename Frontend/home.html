@@ -99,7 +99,7 @@
   <!-- Top Navbar -->
   <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
     <div class="container-fluid px-4">
-      <a class="navbar-brand" href="#">
+      <a class="navbar-brand" href="http://localhost:8080/home.html">
         <i class="bi bi-box-seam me-2"></i>WarehouseHub
       </a>
       <button
@@ -117,12 +117,12 @@
       <div class="collapse navbar-collapse" id="mainNavbar">
         <ul class="navbar-nav ms-3 me-auto mb-2 mb-lg-0">
           <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="lager_uebersicht.html">
+            <a class="nav-link active" aria-current="page" href="http://localhost:8080/lager_uebersicht.html">
               Warehouses
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="Scanner.html">Scanner</a>
+            <a class="nav-link" href="http://localhost:8080/Scanner.html">Scanner</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="#">Admin</a>
@@ -152,16 +152,16 @@
       <div class="top-tabs d-flex align-items-center gap-2 mt-3 mt-sm-0">
         <ul class="nav">
           <li class="nav-item">
-            <a href="lager_uebersicht.html?lagerId=${warehouse.lager_id}" class="nav-link active" href="#">Warehouses</a>
+            <a href="http://localhost:8080/lager_uebersicht.html?lagerId=${warehouse.lagerId}" class="nav-link active" href="#">Warehouses</a>
           </li>
           <li class="nav-item">
-            <a href="lager_uebersicht.html?lagerId=${warehouse.lager_id}" class="nav-link" href="#">Inventory
-              
+            <a href="http://localhost:8080/lager_uebersicht.html?lagerId=${warehouse.lagerId}" class="nav-link" href="#">Inventory
+            
             </a>
            
           </li>
         </ul>
-        <button class="btn btn-primary ms-2">
+        <button class="btn btn-primary ms-2" id="addWarehouseBtn">
           <i class="bi bi-plus-lg me-1"></i> Add Warehouse
         </button>
       </div>
@@ -188,7 +188,7 @@
       
       if (!token || !user) {
         // Redirect to login if not authenticated
-        window.location.href = './login.html';
+        window.location.href = 'http://localhost:8080/login.html';
         return;
       }
       
@@ -209,7 +209,7 @@
       localStorage.removeItem('user');
       
       // Redirect to login page
-      window.location.href = './login.html';
+      window.location.href = 'http://localhost:8080/login.html';
     });
     
     // Check authentication on page load
@@ -247,7 +247,7 @@
               <p class="card-text">
                 <strong>Standort:</strong> ${warehouse.standort}
               </p>
-              <a href="lager_uebersicht.html?lagerId=${warehouse.lager_id}" class="btn btn-primary btn-sm">
+              <a href="lager_uebersicht.html?lagerId=${warehouse.lagerId}" class="btn btn-primary btn-sm">
                 <i class="bi bi-eye me-1"></i>Zur Übersicht
               </a>
             </div>
@@ -256,8 +256,89 @@
       `).join('');
     }
     
-    // Load warehouses on page load
-    loadWarehouses();
+    // Initialize everything when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      // Load warehouses on page load
+      loadWarehouses();
+      
+      // Handle Add Warehouse button
+      const addBtn = document.getElementById('addWarehouseBtn');
+      if (addBtn) {
+        addBtn.addEventListener('click', () => {
+          const modal = new bootstrap.Modal(document.getElementById('addWarehouseModal'));
+          modal.show();
+        });
+      }
+      
+      // Handle form submission
+      const form = document.getElementById('addWarehouseForm');
+      if (form) {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          
+          const lagerName = document.getElementById('lagerName').value;
+          const standort = document.getElementById('standort').value;
+          
+          try {
+            const response = await fetch('http://localhost:3000/lager', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ lagerName, standort })
+            });
+            
+            if (!response.ok) {
+              throw new Error('Fehler beim Hinzufügen des Lagers');
+            }
+            
+            const result = await response.json();
+            
+            // Close modal
+            const modalElement = document.getElementById('addWarehouseModal');
+            const modal = bootstrap.Modal.getInstance(modalElement);
+            modal.hide();
+            
+            // Reset form
+            document.getElementById('addWarehouseForm').reset();
+            
+            // Reload warehouses
+            loadWarehouses();
+          } catch (error) {
+            console.error('Fehler:', error);
+            alert('Fehler beim Hinzufügen des Lagers: ' + error.message);
+          }
+        });
+      }
+    });
   </script>
+  
+  <!-- Add Warehouse Modal -->
+  <div class="modal fade" id="addWarehouseModal" tabindex="-1" aria-labelledby="addWarehouseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addWarehouseModalLabel">Neues Lager hinzufügen</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="addWarehouseForm">
+            <div class="mb-3">
+              <label for="lagerName" class="form-label">Lager Name</label>
+              <input type="text" class="form-control" id="lagerName" required>
+            </div>
+            <div class="mb-3">
+              <label for="standort" class="form-label">Standort</label>
+              <input type="text" class="form-control" id="standort" required>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+          <button type="submit" form="addWarehouseForm" class="btn btn-primary">Hinzufügen</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
