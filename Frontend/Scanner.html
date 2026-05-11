@@ -535,7 +535,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <script>
-    const API_BASE = 'http://localhost:3000';
+    const API_BASE = 'http://127.0.0.1:5500';
     const scannerMessage = document.getElementById('scannerMessage');
     const cameraToggleBtn = document.getElementById('cameraToggleBtn');
     const barcodeInput = document.getElementById('barcodeInput');
@@ -685,12 +685,15 @@
     const locationsHtml = lagerplaetze.length === 0
       ? `<p class="text-muted mb-0" style="font-size:.85rem;">Kein Lagerplatz zugeordnet.</p>`
       : lagerplaetze.map(e => `
-          <div class="location-item">
+          <div class="location-item" data-plid="${e.plId ?? ''}" data-lagerplatzid="${e.lagerplatzId ?? ''}">
             <div>
               <div class="loc-name">${e.lagerName || 'Unbekanntes Lager'}</div>
               <div class="loc-pos"><i class="bi bi-geo-alt me-1"></i>${e.position}</div>
             </div>
-            <span class="loc-qty">${e.menge ?? 0}</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="loc-qty">${e.menge ?? 0}</span>
+              <button class="btn btn-sm btn-outline-secondary btn-edit-qty" data-plid="${e.plId ?? ''}" type="button">Bearbeiten</button>
+            </div>
           </div>`).join('');
 
     detailsPanel.innerHTML = `
@@ -699,35 +702,168 @@
           <p class="product-title">${product.produktName}</p>
           <span class="product-barcode"><i class="bi bi-upc me-1"></i>${product.barcode}</span>
         </div>
-        <span class="stock-badge ${lowStock ? 'low' : 'ok'}">
-          <i class="bi ${lowStock ? 'bi-exclamation-triangle-fill' : 'bi-check-circle-fill'}"></i>
-          ${lowStock ? 'Unter Mindestbestand' : 'In Ordnung'}
-        </span>
-      </div>
-
-      <div class="stat-grid">
-        <div class="stat-box">
-          <div class="label">Aktueller Bestand</div>
-          <div class="value" style="color:${lowStock ? '#dc2626' : '#0f172a'}">${product.aktuellerBestand}</div>
-        </div>
-        <div class="stat-box">
-          <div class="label">Mindestbestand</div>
-          <div class="value">${product.mindestBestand}</div>
-        </div>
       </div>
 
       <div class="locations-title"><i class="bi bi-pin-map me-1"></i>Lagerplätze</div>
       ${locationsHtml}
 
+      <div style="margin-top:12px;">
+        <label class="form-label" style="font-size:.85rem;font-weight:600;margin-bottom:6px;">Artikel zu Lagerort hinzufügen</label>
+        <div class="input-group mb-2">
+          <select id="lagerSelect" class="form-select" style="min-width:160px"></select>
+
+          <input id="lagerplatzInput" type="text" class="form-control" placeholder="Lagerplatz (z. B. A-01-01)" />
+        </div>
+        <div class="input-group mb-2">
+          <input id="addQty" type="number" min="0" value="1" class="form-control" style="max-width:110px" />
+          <button id="addToLocationBtn" class="btn btn-outline-secondary" type="button">Hinzufügen</button>
+        </div>
+        <div id="addResult" style="font-size:.85rem;margin-top:6px;color:#0f172a"></div>
+      </div>
+
       <button class="btn-rescan" id="rescanBtn" type="button">
         <i class="bi bi-arrow-repeat"></i> Erneut scannen
       </button>`;
-
     document.getElementById('rescanBtn').addEventListener('click', () => {
       renderEmpty();
       clearStatus();
       barcodeInput.value = '';
       startCamera();
+    });
+
+    // prepare add-to-location UI
+    (async () => {
+      await loadLagerData();
+      populateLagerSelect(product);
+      attachLocationEditHandlers(product);
+    })();
+  }
+
+  // --- Load lagers and lagerplaetze for add-to-location UI ---
+  let _lagers = [];
+  let _lagerplaetzeAll = [];
+
+  async function loadLagerData() {
+    try {
+      const [r1, r2] = await Promise.all([fetch(`${API_BASE}/lager`), fetch(`${API_BASE}/lagerplatz`)]);
+      if (r1.ok) _lagers = await r1.json(); else _lagers = [];
+      if (r2.ok) _lagerplaetzeAll = await r2.json(); else _lagerplaetzeAll = [];
+    } catch (e) {
+      _lagers = [];
+      _lagerplaetzeAll = [];
+    }
+  }
+
+  function populateLagerSelect(product) {
+    const lagerSel = document.getElementById('lagerSelect');
+    if (!lagerSel) return;
+
+    // fill lager select
+    lagerSel.innerHTML = '';
+    _lagers.forEach(l => {
+      const opt = document.createElement('option');
+      opt.value = l.lagerId;
+      opt.textContent = `${l.lagerName} (${l.standort || ''})`;
+      lagerSel.appendChild(opt);
+    });
+
+    if (_lagers.length === 0) {
+      const opt = document.createElement('option'); opt.value = ''; opt.textContent = 'Keine Lager vorhanden'; lagerSel.appendChild(opt);
+    }
+
+    // initial fill
+    if (lagerSel.options.length > 0) {
+      lagerSel.selectedIndex = 0;
+    }
+
+    // add handler
+    const addBtn = document.getElementById('addToLocationBtn');
+    const addResult = document.getElementById('addResult');
+    addBtn.addEventListener('click', async () => {
+      addResult.textContent = '';
+      const plText = (document.getElementById('lagerplatzInput')||{}).value || '';
+      const qty = Number(document.getElementById('addQty').value || 0);
+      if (!plText) { addResult.textContent = 'Bitte Lagerplatz angeben.'; return; }
+      if (!qty || qty < 0) { addResult.textContent = 'Bitte Menge >= 0 angeben.'; return; }
+
+      try {
+        const lid = Number(lagerSel.value);
+        // Try to find existing lagerplatz for this lager by text
+        const match = _lagerplaetzeAll.find(p => Number(p.lagerId) === Number(lid) && `${p.regalNR}-${p.regalSection}-${p.regalShelf}`.toLowerCase() === plText.trim().toLowerCase());
+        let targetPlId = match ? match.lagerplatzId : null;
+
+        if (!targetPlId) {
+          // try parse parts
+          const parts = plText.trim().split('-').map(p => p.trim());
+          if (parts.length !== 3) { addResult.textContent = 'Lagerplatz im Format A-01-01 angeben oder exakten bestehenden Namen.'; return; }
+          const lpRes = await fetch(`${API_BASE}/lagerplatz`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lagerId: lid, regalNR: parts[0], regalSection: parts[1], regalShelf: parts[2] })
+          });
+          const lpJson = await lpRes.json();
+          if (!lpRes.ok) { addResult.style.color='#b91c1c'; addResult.textContent = lpJson.error || 'Fehler beim Erstellen des Lagerplatzes'; soundError(); return; }
+          targetPlId = lpJson.lagerplatzId;
+          // update cache
+          _lagerplaetzeAll.push(lpJson);
+        }
+
+        const body = { lagerplatzId: Number(targetPlId), productId: Number(product.productId), menge: Number(qty) };
+        const res = await fetch(`${API_BASE}/zuordnung`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const d = await res.json();
+        if (!res.ok) {
+          addResult.style.color = '#b91c1c';
+          addResult.textContent = d.error || 'Fehler beim Hinzufügen';
+          soundError();
+          return;
+        }
+        addResult.style.color = '#15803d';
+        addResult.textContent = 'Artikel erfolgreich hinzugefügt.';
+        soundSuccess();
+        // refresh product display
+        await fetchByBarcode(product.barcode);
+      } catch (err) {
+        addResult.style.color = '#b91c1c';
+        addResult.textContent = 'Netzwerkfehler';
+        soundError();
+      }
+    });
+  }
+
+  // attach edit handlers for location items
+  function attachLocationEditHandlers(product) {
+    document.querySelectorAll('.btn-edit-qty').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const plId = btn.dataset.plid || btn.getAttribute('data-plid');
+        const item = btn.closest('.location-item');
+        if (!item) return;
+        const qtySpan = item.querySelector('.loc-qty');
+        const oldQty = Number(qtySpan.textContent || 0);
+        // create inline editor
+        const input = document.createElement('input'); input.type = 'number'; input.min = '0'; input.value = String(oldQty); input.style.maxWidth = '100px';
+        const save = document.createElement('button'); save.className = 'btn btn-sm btn-primary'; save.textContent = 'Speichern';
+        const cancel = document.createElement('button'); cancel.className = 'btn btn-sm btn-secondary'; cancel.textContent = 'Abbrechen';
+        btn.style.display = 'none'; qtySpan.style.display = 'none';
+        btn.parentElement.appendChild(input); btn.parentElement.appendChild(save); btn.parentElement.appendChild(cancel);
+
+        cancel.addEventListener('click', () => { input.remove(); save.remove(); cancel.remove(); btn.style.display = ''; qtySpan.style.display = ''; });
+
+        save.addEventListener('click', async () => {
+          const newQty = Number(input.value || 0);
+          if (Number.isNaN(newQty) || newQty < 0) { alert('Ungültige Menge'); return; }
+          try {
+            const lagerplatzId = Number(item.dataset.lagerplatzid) || null;
+            const res = await fetch(`${API_BASE}/zuordnung/${plId}`, {
+              method: 'PUT', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ lagerplatzId, productId: Number(product.productId), menge: newQty })
+            });
+            const d = await res.json();
+            if (!res.ok) { alert(d.error || 'Fehler beim Speichern'); return; }
+            qtySpan.textContent = String(newQty);
+            input.remove(); save.remove(); cancel.remove(); btn.style.display = ''; qtySpan.style.display = '';
+            soundSuccess();
+          } catch (e) { alert('Netzwerkfehler'); }
+        });
+      });
     });
   }
 

@@ -660,6 +660,8 @@ app.get('/produkte/barcode/:barcode', async (req: Request, res: Response) => {
         regalSection: LagerplatzTable.regalSection,
         regalShelf: LagerplatzTable.regalShelf,
         menge: ZuordnungTable.menge,
+        plId: ZuordnungTable.plId,
+        lagerplatzId: LagerplatzTable.lagerplatzId,
       })
       .from(productTable)
       .leftJoin(ZuordnungTable, eq(ZuordnungTable.productId, productTable.productId))
@@ -675,6 +677,8 @@ app.get('/produkte/barcode/:barcode', async (req: Request, res: Response) => {
     const lagerplaetze = rows
       .filter((row) => row.regalNR !== null && row.regalSection !== null && row.regalShelf !== null)
       .map((row) => ({
+        plId: row.plId,
+        lagerplatzId: row.lagerplatzId,
         lagerName: row.lagerName,
         position: `${row.regalNR}-${row.regalSection}-${row.regalShelf}`,
         menge: row.menge,
