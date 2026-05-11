@@ -5,15 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <style>
+        /* ============================================
+           GLOBALE STILE
+           ============================================ */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        /* Haupt-Body mit Gradient-Hintergrund */
         body {
             font-family: Arial, sans-serif;
-            /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
             background: linear-gradient(135deg, #1073ad 0%, #668698);
             background-size: cover;
             min-height: 100vh;
@@ -24,6 +27,7 @@
             padding: 32px 0 48px;
         }
 
+        /* Container für gesamte Seite */
         .page {
             width: 100%;
             display: flex;
@@ -32,6 +36,7 @@
             gap: 20px;
         }
 
+        /* Logo-Bereich */
         .logo-card {
             display: flex;
             align-items: center;
@@ -50,6 +55,9 @@
             display: block;
         }
 
+        /* ============================================
+           LOGIN-FORMULAR
+           ============================================ */
         .login-container {
             background: white;
             padding: 40px;
@@ -66,6 +74,7 @@
             font-size: 28px;
         }
 
+        /* Input-Gruppen (Email, Password) */
         .input-group {
             margin-bottom: 20px;
         }
@@ -87,11 +96,13 @@
             transition: border-color 0.3s;
         }
 
+        /* Focus-Effekt für Eingabefelder */
         .input-group input:focus {
             outline: none;
             border-color: #667eea;
         }
 
+        /* Login-Button */
         .login-button {
             width: 100%;
             padding: 12px;
@@ -113,8 +124,7 @@
             transform: translateY(0);
         }
 
-
-        
+        /* Signup-Link (momentan deaktiviert) */
         .signup-link {
             position: fixed;
             bottom: 20px;
@@ -143,42 +153,49 @@
 </head>
 <body>
     <div class="page">
+        <!-- Logo/Header der Anwendung -->
         <div class="logo-card">
             <img src="./noBgColor.png" alt="Nexus Logo">
         </div>
 
+        <!-- Login-Formular -->
         <div class="login-container">
             <h1>Login</h1>
             
             <form>
+                <!-- Email-Eingabefeld -->
                 <div class="input-group">
                     <label for="email">Email</label>
                     <input type="email" id="email" name="email" required>
                 </div>
 
+                <!-- Passwort-Eingabefeld -->
                 <div class="input-group">
                     <label for="password">Passwort</label>
                     <input type="password" id="password" name="password" required>
                 </div>
 
+                <!-- Login-Button -->
                 <button type="submit" class="login-button">Einloggen</button>
             </form>
         </div>
-
-        <!--<div class="signup-link">
-            <a href="http://127.0.0.1:5500/Frontend/Admin.html">Neuen Benutzer erstellen</a>
-        </div>-->
     </div>
 
-
     <script>
+        // ============================================
+        // LOGIN-VERARBEITUNG
+        // ============================================
+        
+        // Event-Listener für Form-Submission
         document.querySelector('form').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            // Abrufen der eingegebenen Anmeldedaten
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             
             try {
+                // POST-Request an Login-Endpoint
                 const response = await fetch('http://127.0.0.1:5500/login', {
                     method: 'POST',
                     headers: {
@@ -189,11 +206,15 @@
                 
                 const data = await response.json();
                 
+                // Wenn Login erfolgreich
                 if (response.ok) {
+                    // Speichere Token und Benutzerinfo im lokalen Storage
                     localStorage.setItem('token', data.token);
                     localStorage.setItem('user', JSON.stringify(data.user));
+                    // Weiterleitung zur Home-Seite
                     window.location.href = './home.html';
                 } else {
+                    // Fehlermeldung anzeigen
                     alert(data.error || 'Login fehlgeschlagen');
                 }
             } catch (error) {
@@ -202,21 +223,9 @@
             }
         });
 
-        //admin
-        //admin@example.com
-        //admin123
-
-        //user1
-        //user123
-
-        //Userx
-        //12345
-
-        //Jannik
-        //jannik
-
-        //cd "c:\Users\janni\OneDrive\Dokumente\GitHub\Nexus\Backend"
-        //npx ts-node src/server.ts
+        // Test-Anmeldedaten (für Entwicklung):
+        // Admin: admin@example.com / admin123
+        // User: scanner@example.com / scanner123
     </script>
 </body>
 </html>

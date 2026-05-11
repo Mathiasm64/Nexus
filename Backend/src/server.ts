@@ -1,3 +1,18 @@
+/**
+ * WAREHOUSEHUB - BACKEND HAUPTSERVER
+ * 
+ * Dieser Server ist das Herzstück der WarehouseHub Lagerverwaltungsanwendung.
+ * Er verwaltet alle Datenbankoperationen und stellt REST-APIs für das Frontend bereit.
+ * 
+ * Features:
+ * - Benutzerauthentifizierung (Login, Register)
+ * - Lagerverwaltung (CRUD-Operationen)
+ * - Produktverwaltung mit Barcode-Unterstützung
+ * - Lagerplatzverwaltung
+ * - Produktzuordnungen zu Lagerplätzen
+ * - Berechtigungsverwaltung (Admin-Schutz)
+ */
+
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -9,25 +24,36 @@ import { userTable, lagerTable, LagerplatzTable, ZuordnungTable, productTable } 
 import { neon } from '@neondatabase/serverless';
 import path from 'path';
 
+// Umgebungsvariablen aus .env Datei laden
 dotenv.config();
 
+// Express App initialisieren
 const app = express();
+// CORS ermöglichen für Frontend-Anfragen
 app.use(cors());
+// JSON Parsing für Request-Bodies
 app.use(express.json());
 
-// Serve Frontend static files
+// Frontend-Dateien (HTML, CSS, JS) als statische Dateien bereitstellen
 const frontendPath = path.join(__dirname, '../../Frontend');
 app.use('/Frontend', express.static(frontendPath));
 
+// Konfiguration aus Umgebungsvariablen mit Fallback-Werten
 const PORT = process.env.PORT ? Number(process.env.PORT) : 5500;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
 
+// Health-Check Endpoint - wird verwendet um zu prüfen ob der Server läuft
 app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok' });
 });
 
 
-// --- CRUD für Lager ---
+// ==============================================
+// LAGER (Warehouse) CRUD OPERATIONEN
+// ==============================================
+// Ein Lager ist ein physischer Lagerort mit mehreren Lagerplätzen
+
+/** GET /lager - Alle Lager abrufen */
 app.get('/lager', async (_req: Request, res: Response) => {
   try {
     const lager = await db.select().from(lagerTable);
@@ -38,6 +64,7 @@ app.get('/lager', async (_req: Request, res: Response) => {
   }
 });
 
+/** GET /lager/:id - Ein bestimmtes Lager abrufen */
 app.get('/lager/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
@@ -49,6 +76,7 @@ app.get('/lager/:id', async (req: Request, res: Response) => {
   }
 });
 
+/** POST /lager - Neues Lager erstellen */
 app.post('/lager', async (req: Request, res: Response) => {
   try {
     const { lagerName, standort } = req.body;
@@ -60,6 +88,7 @@ app.post('/lager', async (req: Request, res: Response) => {
   }
 });
 
+/** PUT /lager/:id - Lager aktualisieren */
 app.put('/lager/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
@@ -72,6 +101,7 @@ app.put('/lager/:id', async (req: Request, res: Response) => {
   }
 });
 
+/** DELETE /lager/:id - Lager löschen */
 app.delete('/lager/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
@@ -82,7 +112,12 @@ app.delete('/lager/:id', async (req: Request, res: Response) => {
   }
 });
 
-// --- CRUD für User ---
+// ==============================================
+// USER (Benutzer) CRUD OPERATIONEN
+// ==============================================
+// Benutzer haben unterschiedliche Rollen (ADMIN, USER)
+
+/** GET /user - Alle Benutzer abrufen */
 app.get('/user', async (_req: Request, res: Response) => {
   try {
     const users = await db.select().from(userTable);
@@ -92,6 +127,7 @@ app.get('/user', async (_req: Request, res: Response) => {
   }
 });
 
+/** GET /user/:id - Ein bestimmten Benutzer abrufen */
 app.get('/user/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
@@ -103,6 +139,7 @@ app.get('/user/:id', async (req: Request, res: Response) => {
   }
 });
 
+/** POST /user - Neuen Benutzer erstellen */
 app.post('/user', async (req: Request, res: Response) => {
   try {
     const { benutzername, email, passwortHash, rolle } = req.body;
@@ -114,6 +151,7 @@ app.post('/user', async (req: Request, res: Response) => {
   }
 });
 
+/** PUT /user/:id - Benutzer aktualisieren */
 app.put('/user/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
@@ -126,6 +164,7 @@ app.put('/user/:id', async (req: Request, res: Response) => {
   }
 });
 
+/** DELETE /user/:id - Benutzer löschen (mit Admin-Schutz) */
 app.delete('/user/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
@@ -140,6 +179,7 @@ app.delete('/user/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Nicht gefunden' });
     }
 
+    // Admin-Benutzer können nicht gelöscht werden - Schutz vor Sperrung
     const normalizedEmail = String(user.email || '').trim().toLowerCase();
     const normalizedRole = String(user.rolle || '').trim().toUpperCase();
 
@@ -154,7 +194,13 @@ app.delete('/user/:id', async (req: Request, res: Response) => {
   }
 });
 
-// --- CRUD für Lagerplatz ---
+
+// ==============================================
+// LAGERPLATZ (Shelf Location) CRUD OPERATIONEN
+// ==============================================
+// Ein Lagerplatz definiert eine physische Position im Regal (Regal-NR, Section, Shelf)
+
+/** GET /lagerplatz - Alle Lagerplätze abrufen */
 app.get('/lagerplatz', async (_req: Request, res: Response) => {
   try {
     const lagerplaetze = await db.select().from(LagerplatzTable);
@@ -164,6 +210,7 @@ app.get('/lagerplatz', async (_req: Request, res: Response) => {
   }
 });
 
+/** GET /lagerplatz/:id - Ein bestimmten Lagerplatz abrufen */
 app.get('/lagerplatz/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
@@ -175,6 +222,7 @@ app.get('/lagerplatz/:id', async (req: Request, res: Response) => {
   }
 });
 
+/** POST /lagerplatz - Neuen Lagerplatz erstellen */
 app.post('/lagerplatz', async (req: Request, res: Response) => {
   try {
     const { lagerId, regalNR, regalSection, regalShelf } = req.body;
@@ -186,6 +234,7 @@ app.post('/lagerplatz', async (req: Request, res: Response) => {
   }
 });
 
+/** PUT /lagerplatz/:id - Lagerplatz aktualisieren */
 app.put('/lagerplatz/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
@@ -198,6 +247,7 @@ app.put('/lagerplatz/:id', async (req: Request, res: Response) => {
   }
 });
 
+/** DELETE /lagerplatz/:id - Lagerplatz löschen */
 app.delete('/lagerplatz/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
@@ -208,7 +258,13 @@ app.delete('/lagerplatz/:id', async (req: Request, res: Response) => {
   }
 });
 
-// --- CRUD für Zuordnung ---
+
+// ==============================================
+// ZUORDNUNG (Product-Shelf Assignment) CRUD OPERATIONEN
+// ==============================================
+// Eine Zuordnung verbindet ein Produkt mit einem Lagerplatz und einer Menge
+
+/** GET /zuordnung - Alle Zuordnungen abrufen */
 app.get('/zuordnung', async (_req: Request, res: Response) => {
   try {
     const zuordnungen = await db.select().from(ZuordnungTable);
@@ -218,6 +274,7 @@ app.get('/zuordnung', async (_req: Request, res: Response) => {
   }
 });
 
+/** GET /zuordnung/:id - Eine bestimmte Zuordnung abrufen */
 app.get('/zuordnung/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
@@ -229,6 +286,7 @@ app.get('/zuordnung/:id', async (req: Request, res: Response) => {
   }
 });
 
+/** POST /zuordnung - Neue Zuordnung erstellen */
 app.post('/zuordnung', async (req: Request, res: Response) => {
   try {
     const { lagerplatzId, productId, menge } = req.body;
@@ -240,6 +298,7 @@ app.post('/zuordnung', async (req: Request, res: Response) => {
   }
 });
 
+/** PUT /zuordnung/:id - Zuordnung aktualisieren */
 app.put('/zuordnung/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
@@ -252,6 +311,7 @@ app.put('/zuordnung/:id', async (req: Request, res: Response) => {
   }
 });
 
+/** DELETE /zuordnung/:id - Zuordnung löschen */
 app.delete('/zuordnung/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
@@ -262,14 +322,22 @@ app.delete('/zuordnung/:id', async (req: Request, res: Response) => {
   }
 });
 
-// --- CRUD für Produkt ---
+
+// ==============================================
+// PRODUKT (Product) CRUD OPERATIONEN
+// ==============================================
+// Produkte sind die Artikel die im Lager gelagert werden, eindeutig durch Barcode
+
+/** GET /produkt - Alle Produkte abrufen (optional nach Kategorie filtern) */
 app.get('/produkt', async (req: Request, res: Response) => {
   try {
     const { kategorie } = req.query;
     let produkte;
     if (kategorie) {
+      // Nur Produkte einer bestimmten Kategorie abrufen
       produkte = await db.select().from(productTable).where(eq(productTable.kategorie, String(kategorie)));
     } else {
+      // Alle Produkte abrufen
       produkte = await db.select().from(productTable);
     }
     return res.json(produkte);
@@ -278,6 +346,7 @@ app.get('/produkt', async (req: Request, res: Response) => {
   }
 });
 
+/** GET /produkt/:id - Ein bestimmtes Produkt abrufen */
 app.get('/produkt/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
@@ -289,10 +358,12 @@ app.get('/produkt/:id', async (req: Request, res: Response) => {
   }
 });
 
+/** POST /produkt - Neues Produkt erstellen */
 app.post('/produkt', async (req: Request, res: Response) => {
   try {
     const { produktName, kategorie, mindestBestand, aktuellerBestand, barcode } = req.body;
-    if (!produktName || !barcode || mindestBestand === undefined || aktuellerBestand === undefined) return res.status(400).json({ error: 'Alle Felder benötigt' });
+    if (!produktName || !barcode || mindestBestand === undefined || aktuellerBestand === undefined) 
+      return res.status(400).json({ error: 'Alle Felder benötigt' });
     const result = await db.insert(productTable).values({ produktName, kategorie, mindestBestand, aktuellerBestand, barcode }).returning();
     return res.status(201).json(result[0]);
   } catch (err) {
@@ -300,6 +371,7 @@ app.post('/produkt', async (req: Request, res: Response) => {
   }
 });
 
+/** PUT /produkt/:id - Produkt aktualisieren */
 app.put('/produkt/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
@@ -312,6 +384,7 @@ app.put('/produkt/:id', async (req: Request, res: Response) => {
   }
 });
 
+/** DELETE /produkt/:id - Produkt löschen */
 app.delete('/produkt/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
@@ -322,6 +395,16 @@ app.delete('/produkt/:id', async (req: Request, res: Response) => {
   }
 });
 
+
+// ==============================================
+// SPEZIELLE PRODUKT-OPERATIONEN
+// ==============================================
+
+/**
+ * GET /lager/:lagerId/produkte - Alle Produkte eines bestimmten Lagers abrufen
+ * Diese komplexe Abfrage verknüpft mehrere Tabellen:
+ * Lager -> Lagerplatz -> Zuordnung -> Produkt
+ */
 app.get('/lager/:lagerId/produkte', async (req: Request, res: Response) => {
   try {
     const { lagerId } = req.params;
@@ -331,8 +414,8 @@ app.get('/lager/:lagerId/produkte', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Ungültige lagerId' });
     }
     
-    // Hole alle Produkte für dieses Lager
-    // Über die Beziehung: Lager -> Lagerplatz -> Zuordnung -> Produkt
+    // Hole alle Produkte für dieses Lager mit vollständigen Informationen
+    // über die Verknüpfungen: Lager -> Lagerplatz -> Zuordnung -> Produkt
     const produkte = await db
       .select({
         plId: ZuordnungTable.plId,
@@ -360,6 +443,12 @@ app.get('/lager/:lagerId/produkte', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * parseLocation - Hilfsfunktion zum Parsen des Standort-Strings
+ * Format: "REGAL-SECTION-SHELF" z.B. "A-01-01"
+ * @param location - Der zu parsende Location-String
+ * @returns Objekt mit regalNR, regalSection, regalShelf
+ */
 function parseLocation(location?: string) {
   const fallback = { regalNR: 'A', regalSection: '01', regalShelf: '01' };
 
@@ -379,6 +468,15 @@ function parseLocation(location?: string) {
   };
 }
 
+
+/**
+ * POST /lager/:lagerId/produkte - Neues Produkt in einem Lager hinzufügen
+ * Diese Operation:
+ * 1. Prüft ob der Barcode bereits existiert
+ * 2. Erstellt oder findet den passenden Lagerplatz
+ * 3. Erstellt das neue Produkt
+ * 4. Verknüpft Produkt mit Lagerplatz (Zuordnung)
+ */
 app.post('/lager/:lagerId/produkte', async (req: Request, res: Response) => {
   try {
     const lagerIdNum = Number.parseInt(req.params.lagerId, 10);
@@ -401,6 +499,7 @@ app.post('/lager/:lagerId/produkte', async (req: Request, res: Response) => {
       location?: string;
     };
 
+    // Validierung: Erforderliche Felder prüfen
     if (!produktName || !barcode || menge === undefined) {
       return res.status(400).json({ error: 'produktName, barcode und menge sind erforderlich' });
     }
@@ -411,6 +510,7 @@ app.post('/lager/:lagerId/produkte', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Ungültige menge' });
     }
 
+    // Prüfe ob dieser Barcode bereits existiert
     const existingBarcode = await db
       .select({ productId: productTable.productId })
       .from(productTable)
@@ -421,8 +521,10 @@ app.post('/lager/:lagerId/produkte', async (req: Request, res: Response) => {
       return res.status(409).json({ error: 'Barcode existiert bereits' });
     }
 
+    // Parse die Lagerplatz-Position
     const parsedLocation = parseLocation(location);
 
+    // Suche oder erstelle den Lagerplatz
     let lagerplatz = await db
       .select({ lagerplatzId: LagerplatzTable.lagerplatzId })
       .from(LagerplatzTable)
@@ -437,6 +539,7 @@ app.post('/lager/:lagerId/produkte', async (req: Request, res: Response) => {
       .limit(1);
 
     if (lagerplatz.length === 0) {
+      // Lagerplatz existiert noch nicht, erstelle ihn
       lagerplatz = await db
         .insert(LagerplatzTable)
         .values({
@@ -448,6 +551,7 @@ app.post('/lager/:lagerId/produkte', async (req: Request, res: Response) => {
         .returning({ lagerplatzId: LagerplatzTable.lagerplatzId });
     }
 
+    // Erstelle das neue Produkt
     const newProduct = await db
       .insert(productTable)
       .values({
@@ -466,6 +570,7 @@ app.post('/lager/:lagerId/produkte', async (req: Request, res: Response) => {
         lastChange: productTable.lastChange,
       });
 
+    // Erstelle die Zuordnung zwischen Produkt und Lagerplatz
     const newZuordnung = await db
       .insert(ZuordnungTable)
       .values({
@@ -486,6 +591,11 @@ app.post('/lager/:lagerId/produkte', async (req: Request, res: Response) => {
   }
 });
 
+
+/**
+ * PUT /lager/:lagerId/produkte/:plId - Produkt aktualisieren
+ * Aktualisiert Produktinformationen und die Zuordnung zum Lagerplatz
+ */
 app.put('/lager/:lagerId/produkte/:plId', async (req: Request, res: Response) => {
   try {
     const lagerIdNum = Number.parseInt(req.params.lagerId, 10);
@@ -521,6 +631,7 @@ app.put('/lager/:lagerId/produkte/:plId', async (req: Request, res: Response) =>
       return res.status(400).json({ error: 'Ungültige menge' });
     }
 
+    // Finde die Zuordnung und das Produkt
     const mapping = await db
       .select({
         productId: ZuordnungTable.productId,
@@ -535,6 +646,7 @@ app.put('/lager/:lagerId/produkte/:plId', async (req: Request, res: Response) =>
       return res.status(404).json({ error: 'Produktzuordnung nicht gefunden' });
     }
 
+    // Prüfe Barcode-Eindeutigkeit
     const existingBarcode = await db
       .select({ productId: productTable.productId })
       .from(productTable)
@@ -545,6 +657,7 @@ app.put('/lager/:lagerId/produkte/:plId', async (req: Request, res: Response) =>
       return res.status(409).json({ error: 'Barcode existiert bereits' });
     }
 
+    // Aktualisiere Produktinformation
     await db
       .update(productTable)
       .set({
@@ -557,13 +670,16 @@ app.put('/lager/:lagerId/produkte/:plId', async (req: Request, res: Response) =>
       })
       .where(eq(productTable.productId, mapping[0].productId));
 
+    // Aktualisiere die Menge in der Zuordnung
     await db
       .update(ZuordnungTable)
       .set({ menge: mengeNum })
       .where(eq(ZuordnungTable.plId, plIdNum));
 
+    // Parse neue Location wenn angegeben
     const parsedLocation = parseLocation(location);
 
+    // Suche oder erstelle neuen Lagerplatz
     let lagerplatz = await db
       .select({ lagerplatzId: LagerplatzTable.lagerplatzId })
       .from(LagerplatzTable)
@@ -589,6 +705,7 @@ app.put('/lager/:lagerId/produkte/:plId', async (req: Request, res: Response) =>
         .returning({ lagerplatzId: LagerplatzTable.lagerplatzId });
     }
 
+    // Aktualisiere den Lagerplatz der Zuordnung
     await db
       .update(ZuordnungTable)
       .set({ lagerplatzId: lagerplatz[0].lagerplatzId })
@@ -601,6 +718,10 @@ app.put('/lager/:lagerId/produkte/:plId', async (req: Request, res: Response) =>
   }
 });
 
+/**
+ * DELETE /lager/:lagerId/produkte/:plId - Produkt aus Lager löschen
+ * Löscht die Zuordnung und cascaded das Produkt wenn es nirgendwo sonst verwendet wird
+ */
 app.delete('/lager/:lagerId/produkte/:plId', async (req: Request, res: Response) => {
   try {
     const lagerIdNum = Number.parseInt(req.params.lagerId, 10);
@@ -610,6 +731,7 @@ app.delete('/lager/:lagerId/produkte/:plId', async (req: Request, res: Response)
       return res.status(400).json({ error: 'Ungültige IDs' });
     }
 
+    // Finde das Produkt dieser Zuordnung
     const mapping = await db
       .select({ productId: ZuordnungTable.productId })
       .from(ZuordnungTable)
@@ -621,14 +743,17 @@ app.delete('/lager/:lagerId/produkte/:plId', async (req: Request, res: Response)
       return res.status(404).json({ error: 'Produktzuordnung nicht gefunden' });
     }
 
+    // Lösche die Zuordnung
     await db.delete(ZuordnungTable).where(eq(ZuordnungTable.plId, plIdNum));
 
+    // Prüfe ob dieses Produkt noch irgendwo zugeordnet ist
     const remainingMappings = await db
       .select({ plId: ZuordnungTable.plId })
       .from(ZuordnungTable)
       .where(eq(ZuordnungTable.productId, mapping[0].productId))
       .limit(1);
 
+    // Wenn das Produkt nirgendwo sonst verwendet wird, lösche auch das Produkt
     if (remainingMappings.length === 0) {
       await db.delete(productTable).where(eq(productTable.productId, mapping[0].productId));
     }
@@ -640,6 +765,10 @@ app.delete('/lager/:lagerId/produkte/:plId', async (req: Request, res: Response)
   }
 });
 
+/**
+ * GET /produkte/barcode/:barcode - Produkt anhand Barcode suchen
+ * Liefert umfassende Informationen mit Lagerplatzangaben
+ */
 app.get('/produkte/barcode/:barcode', async (req: Request, res: Response) => {
   try {
     const barcode = (req.params.barcode || '').trim();
@@ -648,6 +777,7 @@ app.get('/produkte/barcode/:barcode', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Barcode fehlt' });
     }
 
+    // Komplexe Abfrage um alle Lagerplätze des Produkts zu finden
     const rows = await db
       .select({
         productId: productTable.productId,
@@ -672,6 +802,7 @@ app.get('/produkte/barcode/:barcode', async (req: Request, res: Response) => {
     }
 
     const first = rows[0];
+    // Sammle alle Lagerplätze dieses Produkts
     const lagerplaetze = rows
       .filter((row) => row.regalNR !== null && row.regalSection !== null && row.regalShelf !== null)
       .map((row) => ({
