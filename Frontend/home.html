@@ -4,42 +4,53 @@
   <meta charset="UTF-8" />
   <title>WarehouseHub Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Bootstrap CSS -->
+  <!-- Bootstrap CSS Framework -->
   <link
     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
     rel="stylesheet"
   />
-  <!-- Optional: Bootstrap Icons -->
+  <!-- Bootstrap Icons für Symbole -->
   <link
     rel="stylesheet"
     href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
   />
   <style>
+    /* ============================================
+       DASHBOARD STYLING
+       ============================================ */
+    
+    /* Haupt-Body Hintergrund */
     body {
       background-color: #f5f5f7;
     }
 
+    /* Navbar-Logo */
     .navbar-brand {
       font-weight: 600;
     }
 
+    /* Aktiver Navigation Link */
     .nav-link.active {
       font-weight: 600;
     }
 
+    /* Content-Wrapper mit Padding oben für fixed navbar */
     .content-wrapper {
       padding-top: 80px;
     }
 
+    /* Seitentitel */
     .page-title {
       font-size: 1.8rem;
       font-weight: 600;
     }
 
+    /* Untertitel */
     .sub-title {
       color: #6c757d;
     }
 
+    /* Lagerkarten-Styling */
     .card-warehouse {
       border-radius: 12px;
       border: 1px solid #e0e0e0;
@@ -51,28 +62,7 @@
       font-weight: 600;
     }
 
-    .capacity-text {
-      font-weight: 500;
-    }
-
-    .utilization-value {
-      font-weight: 600;
-    }
-
-    .badge-utilization {
-      font-size: 0.85rem;
-      border-radius: 999px;
-    }
-
-    .btn-inventory {
-      border-radius: 999px;
-      padding: 0.35rem 1.2rem;
-    }
-
-    .badge-pill {
-      border-radius: 999px;
-    }
-
+    /* Tab-Navigation */
     .top-tabs .nav-link {
       border-radius: 999px;
       padding: 0.4rem 1.2rem;
@@ -88,6 +78,7 @@
       background-color: #e7f1ff;
     }
 
+    /* Responsive Anpassung */
     @media (max-width: 576px) {
       .page-title {
         font-size: 1.4rem;
@@ -96,12 +87,17 @@
   </style>
 </head>
 <body>
-  <!-- Top Navbar -->
+  <!-- ============================================
+       NAVIGATIONSBAR
+       ============================================ -->
   <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
     <div class="container-fluid px-4">
+      <!-- Branding mit Logo -->
       <a class="navbar-brand" href="http://127.0.0.1:5500/Frontend/home.html">
         <i class="bi bi-box-seam me-2"></i>WarehouseHub
       </a>
+      
+      <!-- Hamburger-Menü für mobile Geräte -->
       <button
         class="navbar-toggler"
         type="button"
@@ -114,6 +110,7 @@
         <span class="navbar-toggler-icon"></span>
       </button>
 
+      <!-- Navigation Links -->
       <div class="collapse navbar-collapse" id="mainNavbar">
         <ul class="navbar-nav ms-3 me-auto mb-2 mb-lg-0">
           <li class="nav-item">
@@ -124,11 +121,13 @@
           <li class="nav-item">
             <a class="nav-link" href="http://127.0.0.1:5500/Frontend/Scanner.html">Scanner</a>
           </li>
+          <!-- Admin-Link nur für Admin-Benutzer sichtbar -->
           <li class="nav-item" id="adminNavItem" style="display: none;">
             <a class="nav-link" href="http://127.0.0.1:5500/Frontend/Admin.html">Admin</a>
           </li>
         </ul>
 
+        <!-- Benutzerinformation und Logout -->
         <div class="d-flex align-items-center gap-3">
           <span class="text-muted small">angemeldet als: <span id="userName">loading...</span></span>
           <button class="btn btn-outline-secondary btn-sm" id="logoutBtn">
@@ -139,9 +138,11 @@
     </div>
   </nav>
 
-  <!-- Content -->
+  <!-- ============================================
+       HAUPT-INHALT
+       ============================================ -->
   <div class="content-wrapper container mt-4">
-    <!-- Header row -->
+    <!-- Header mit Titel -->
     <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
       <div>
         <div class="page-title">Warehouses</div>
@@ -149,31 +150,12 @@
           Verwalte deine Lagerstandorte und Bestände.
         </div>
       </div>
-      <!--
-      <div class="top-tabs d-flex align-items-center gap-2 mt-3 mt-sm-0">
-        <ul class="nav">
-          <li class="nav-item">
-            <a href="http://127.0.0.1:5500/Frontend/lager_uebersicht.html?lagerId=${warehouse.lagerId}" class="nav-link active" href="#">Warehouses</a>
-          </li>
-          <li class="nav-item">
-            <a href="http://127.0.0.1:5500/Frontend/lager_uebersicht.html?lagerId=${warehouse.lagerId}" class="nav-link" href="#">Inventory
-            
-            </a>
-           
-          </li>
-        </ul>
-        <button class="btn btn-primary ms-2" id="addWarehouseBtn">
-          <i class="bi bi-plus-lg me-1"></i> Add Warehouse
-        </button>
-      </div>-->
     </div>
 
-    <!-- Warehouse cards row -->
+    <!-- Container für Lagerkarten -->
     <div class="row g-4" id="warehouseContainer">
-      <!-- Lager werden hier eingefügt -->
+      <!-- Lagerkarten werden hier eingefügt -->
     </div>
-
-    
   </div>
 
   <!-- Bootstrap JS Bundle -->
@@ -182,23 +164,31 @@
   ></script>
   
   <script>
-    // Check if user is logged in
+    // ============================================
+    // AUTHENTIFIZIERUNGS-FUNKTIONEN
+    // ============================================
+
+    /**
+     * Prüft ob der Benutzer angemeldet ist
+     * Falls nicht: Leiterung zum Login
+     * Falls ja: Zeige Benutzernamen und Admin-Link falls zutreffend
+     */
     function checkAuthentication() {
       const token = localStorage.getItem('token');
       const user = localStorage.getItem('user');
       
       if (!token || !user) {
-        // Redirect to login if not authenticated
+        // Benutzer nicht angemeldet - zur Login-Seite umleiten
         window.location.href = 'http://127.0.0.1:5500/Frontend/login.html';
         return;
       }
       
-      // Parse and display user info
       try {
+        // Parse und zeige Benutzerinformation
         const userData = JSON.parse(user);
         document.getElementById('userName').textContent = userData.name || userData.email;
         
-        // Show Admin link only for admin@example.com
+        // Zeige Admin-Link nur für admin@example.com
         const adminNavItem = document.getElementById('adminNavItem');
         if (userData.email === 'admin@example.com') {
           adminNavItem.style.display = 'block';
@@ -209,20 +199,29 @@
       }
     }
     
-    // Handle logout
+    // ============================================
+    // LOGOUT-FUNKTION
+    // ============================================
+    
     document.getElementById('logoutBtn').addEventListener('click', () => {
-      // Clear localStorage
+      // Lösche Token und Benutzerinformation
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       
-      // Redirect to login page
+      // Leite zur Login-Seite um
       window.location.href = 'http://127.0.0.1:5500/Frontend/login.html';
     });
     
-    // Check authentication on page load
+    // Authentifizierung beim Laden prüfen
     checkAuthentication();
     
-    // Load warehouses
+    // ============================================
+    // LADER-LOADING FUNKTIONEN
+    // ============================================
+    
+    /**
+     * Lädt alle Lager vom Server
+     */
     async function loadWarehouses() {
       try {
         const response = await fetch('http://127.0.0.1:5500/lager');
@@ -237,7 +236,10 @@
       }
     }
     
-    // Display warehouses as cards
+    /**
+     * Zeige Lager als Karten
+     * @param {Array} lager - Array mit Lagerobjekten
+     */
     function displayWarehouses(lager) {
       const container = document.getElementById('warehouseContainer');
       
@@ -246,6 +248,7 @@
         return;
       }
       
+      // Generiere HTML für jede Lagerkarte
       container.innerHTML = lager.map(warehouse => `
         <div class="col-md-6 col-lg-4">
           <div class="card card-warehouse h-100" style="cursor: pointer;" onclick="window.location.href='lager_uebersicht.html?lagerId=${warehouse.lagerId}'">
@@ -263,89 +266,14 @@
       `).join('');
     }
     
-    // Initialize everything when DOM is loaded
+    // ============================================
+    // SEITEN-INITIALISIERUNG
+    // ============================================
+    
     document.addEventListener('DOMContentLoaded', () => {
-      // Load warehouses on page load
+      // Lade Lager beim Laden der Seite
       loadWarehouses();
-      
-      // Handle Add Warehouse button
-      const addBtn = document.getElementById('addWarehouseBtn');
-      if (addBtn) {
-        addBtn.addEventListener('click', () => {
-          const modal = new bootstrap.Modal(document.getElementById('addWarehouseModal'));
-          modal.show();
-        });
-      }
-      
-      // Handle form submission
-      const form = document.getElementById('addWarehouseForm');
-      if (form) {
-        form.addEventListener('submit', async (e) => {
-          e.preventDefault();
-          
-          const lagerName = document.getElementById('lagerName').value;
-          const standort = document.getElementById('standort').value;
-          
-          try {
-            const response = await fetch('http://127.0.0.1:5500/lager', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ lagerName, standort })
-            });
-            
-            if (!response.ok) {
-              throw new Error('Fehler beim Hinzufügen des Lagers');
-            }
-            
-            const result = await response.json();
-            
-            // Close modal
-            const modalElement = document.getElementById('addWarehouseModal');
-            const modal = bootstrap.Modal.getInstance(modalElement);
-            modal.hide();
-            
-            // Reset form
-            document.getElementById('addWarehouseForm').reset();
-            
-            // Reload warehouses
-            loadWarehouses();
-          } catch (error) {
-            console.error('Fehler:', error);
-            alert('Fehler beim Hinzufügen des Lagers: ' + error.message);
-          }
-        });
-      }
     });
   </script>
-  
-  <!-- Add Warehouse Modal -->
-  <div class="modal fade" id="addWarehouseModal" tabindex="-1" aria-labelledby="addWarehouseModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="addWarehouseModalLabel">Neues Lager hinzufügen</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <form id="addWarehouseForm">
-            <div class="mb-3">
-              <label for="lagerName" class="form-label">Lager Name</label>
-              <input type="text" class="form-control" id="lagerName" required>
-            </div>
-            <div class="mb-3">
-              <label for="standort" class="form-label">Standort</label>
-              <input type="text" class="form-control" id="standort" required>
-            </div>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-          <button type="submit" form="addWarehouseForm" class="btn btn-primary">Hinzufügen</button>
-        </div>
-      </div>
-    </div>
-  </div>
 </body>
 </html>
